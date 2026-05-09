@@ -1,0 +1,15 @@
+{
+    "title": "本科在读",
+    "description": "烟台大学，机器人工程，低空技术与工程在读，学习方向：飞控优化",
+    "type": "education",
+    "startDate": "2025-09-12",
+    "endDate": "",
+    "skills": [
+        "Education Background",
+        "Engineering"
+    ],
+    "achievements": [],
+    "icon": "mdi:graduation-cap",
+    "color": "#91c53a",
+    "featured": true
+}

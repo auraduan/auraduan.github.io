@@ -1,0 +1,15 @@
+{
+    "name": "钢琴演奏",
+    "description": "钢琴演奏技能",
+    "icon": "logos:piano-icon",
+    "category": "music",
+    "level": "intermediate",
+    "experience": {
+        "years": 12,
+        "months": 0
+    },
+    "projects": [
+        "Twilight"
+    ],
+    "color": "#06B6D4"
+}
