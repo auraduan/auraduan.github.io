@@ -35,8 +35,8 @@ let isAutoplayEnabled = $state(musicPlayerConfig.autoplay ?? false);
 // 当前歌曲信息
 let currentSong: MusicPlayerTrack = $state({
     id: 0,
-    title: "Music",
-    artist: "Artist",
+    title: "音乐",
+    artist: "艺术家",
     cover: "/favicon/icon-light.ico",
     url: "",
     duration: 0,

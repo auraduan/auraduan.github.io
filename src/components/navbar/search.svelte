@@ -24,17 +24,17 @@ const fakeResult: SearchResult[] = [
     {
         url: url("/"),
         meta: {
-            title: "This Is a Fake Search Result",
+            title: "这是一条假搜索结果",
         },
         excerpt:
-            "Because the search cannot work in the <mark>dev</mark> environment.",
+            "因为搜索功能在 <mark>开发</mark> 环境下无法工作。",
     },
     {
         url: url("/"),
         meta: {
-            title: "If You Want to Test the Search",
+            title: "如果你想测试搜索功能",
         },
-        excerpt: "Try running <mark>npm build && npm preview</mark> instead.",
+        excerpt: "请运行 <mark>npm build && npm preview</mark> 来替代。",
     },
 ];
 
@@ -253,7 +253,7 @@ onDestroy(() => {
       dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
   ">
         <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
-        <input placeholder="Search" bind:value={keywordMobile}
+        <input placeholder="搜索" bind:value={keywordMobile}
                class="pl-10 absolute inset-0 text-sm bg-transparent outline-0
                focus:w-60 text-black/50 dark:text-white/50"
         >
