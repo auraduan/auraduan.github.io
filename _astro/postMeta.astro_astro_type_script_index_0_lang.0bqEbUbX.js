@@ -1,0 +1,1 @@
+import{i as a}from"./umami-share.lXIzgBo3.js";import"./config.DcRlT49e.js";a(".page-views-container",".page-views-display","umami",!0);document.addEventListener("astro:page-load",()=>{a(".page-views-container",".page-views-display","umami",!0)});

@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Lingchen&apos;s Workspace</title><description>技术博客 | 低空飞行器 | PX4飞控</description><link>https://auraduan.github.io/</link><language>zh</language><item><title>关于我</title><link>https://auraduan.github.io/posts/about-me/</link><guid isPermaLink="true">https://auraduan.github.io/posts/about-me/</guid><description>关于本站和作者</description><pubDate>Sat, 09 May 2026 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;关于我&lt;/h2&gt;
+&lt;p&gt;低空技术与工程本科在读，目前专注于&lt;strong&gt;低空飞行器&lt;/strong&gt;与&lt;strong&gt;PX4 飞行控制&lt;/strong&gt;开发。&lt;/p&gt;
+&lt;h3&gt;技术方向&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;PX4 飞行控制器开发&lt;/li&gt;
+&lt;li&gt;无人系统集成&lt;/li&gt;
+&lt;li&gt;嵌入式系统&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;项目成果&lt;/h3&gt;
+&lt;p&gt;正在整理中...&lt;/p&gt;
+&lt;h3&gt;联系方式&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;QQ: 3054053599&lt;/li&gt;
+&lt;li&gt;GitHub: &lt;a href=&quot;https://github.com/auraduan&quot;&gt;auraduan&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Email: LingChen1503@outlook.com&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;欢迎交流！&lt;/p&gt;
+</content:encoded><category>关于</category></item><item><title>【乐评】站在2026，我对《东京人寿》的一些思考</title><link>https://auraduan.github.io/posts/%E9%9F%B3%E4%B9%90%E9%9A%8F%E7%AC%94/mc_1/</link><guid isPermaLink="true">https://auraduan.github.io/posts/%E9%9F%B3%E4%B9%90%E9%9A%8F%E7%AC%94/mc_1/</guid><description>—— 基于存在主义悲观学与离散概率论的文本解构</description><pubDate>Sun, 17 May 2026 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;如果用一句话形容笔者现在的生活，即是“三点一线”：宿舍、实验室、教室。白天在实验室里调参数，机体不稳定就一遍一遍重来；晚上对着论文学习，读不完的文献像永远翻不到头。很多时候，一天结束，笔者很难说自己完成了什么，只是把“还没做完的事情”，往明天又推了一点。&lt;/p&gt;
+&lt;p&gt;这种生活让笔者产生一种错觉：只要再努力一点，再把手头的事情做好一点，未来自然会更清晰，生活也会在某个“更合适的时间点”展开。很多念头——想去的地方，想见的人，还没来得及认真处理的情绪——都会被搁置，然后被统一安放进一个词里，叫“以后”。&lt;/p&gt;
+&lt;p&gt;笔者并非的冰冷机器，而音乐几乎是我唯一的情感归宿。寥寥闲暇，闭目聆听，便是全部温柔。&lt;/p&gt;
+&lt;p&gt;也正是在这样的节奏里，某一晚，笔者再去听容祖儿的《东京人寿》，突然意识到，这首歌真正动摇的，恰恰就是那个“以后”。&lt;/p&gt;
+&lt;p&gt;今日，与您分享，《东京人寿》。&lt;/p&gt;
+&lt;p&gt;建议您佩戴耳机，调至舒服音量，配合原曲聆听，以获得最佳体验。&lt;/p&gt;
+&lt;p&gt;::music{title=&quot;东京人寿&quot; artist=&quot;容祖儿&quot; cover=&quot;/assets/images/MC_1_Cover.jpg&quot; audio=&quot;assets/music/东京人寿-容祖儿-原曲.aac&quot; lrc=&quot;assets/music/东京人寿-容祖儿-歌词.lrc&quot;}&lt;/p&gt;
+&lt;h2&gt;一、从2026回望：那些被反复推迟的“明年”&lt;/h2&gt;
+&lt;p&gt;现在，请您与我一起，将时间拨回2020年。&lt;/p&gt;
+&lt;p&gt;那一年，全球爆发严重的 COVID-19 疫情。生产、生活遭到严重冲击；那一年，本该如期举行的2020年东京奥运会被迫延期，这是现代奥运史上极为罕见的一次中断——一个原本象征秩序与周期的全球事件，被现实按下暂停键。与此同时，全球经济陷入衰退，国际货币基金组织在当年的《世界经济展望》中指出，这一阶段是自大萧条以来最严重的经济收缩之一。&lt;/p&gt;
+&lt;p&gt;在那样的背景下，歌词里那句——“讲好一起看奥运，都怕有突发坏事件，搁误着韶华”，不再只是私人情绪，而是被现实验证过的集体经验。一个原本被默认会发生的“未来事件”，突然变得不再可靠。&lt;/p&gt;
+&lt;p&gt;也许是从那一年开始，“明年”这个词，第一次大规模地失去了它的确定性。&lt;/p&gt;
+&lt;h2&gt;二、《东京人寿》真正动摇的，是“选择可以优化人生”这件事&lt;/h2&gt;
+&lt;p&gt;这首歌最容易被误读的地方，是把它当作一首关于“及时行乐”的作品。但如果细读歌词，会发现它其实在不断否定任何简单的价值判断。&lt;/p&gt;
+&lt;p&gt;开头两段几乎是镜像结构：&lt;/p&gt;
+&lt;p&gt;“花了它，手边经已没储蓄吧”&lt;/p&gt;
+&lt;p&gt;“省了它，担心经济，下秒更差”&lt;/p&gt;
+&lt;p&gt;这里的关键，不在于“花”或“省”，而在于两者背后的情绪——无论选择哪一边，焦虑都不会消失。花钱，是对未来的担忧；储蓄，是对当下的遗憾。两种路径互相抵消，没有一个真正的“安全解”。&lt;/p&gt;
+&lt;p&gt;紧接着，歌词进一步推进这种不确定性：&lt;/p&gt;
+&lt;p&gt;“快乐，会不会重来？这刻你再忍一下，怎会毫无代价？”&lt;/p&gt;
+&lt;p&gt;这里实际上在拆解“延迟满足”的逻辑。我们之所以愿意“再忍一下”，是因为相信快乐可以在未来以某种形式回归。但歌词反问：这种推迟，真的没有代价吗？那一刻的情绪、那一段关系、那种状态，是否真的可以被未来替代？&lt;/p&gt;
+&lt;p&gt;当这个问题被提出时，“等一等”就不再是无害的选择，而变成了一种潜在的损失。&lt;/p&gt;
+&lt;h2&gt;三、“人寿”与“东京”：不可复制的人生与失效的“明年”&lt;/h2&gt;
+&lt;p&gt;整首歌的核心，被压缩在副歌之中：&lt;/p&gt;
+&lt;p&gt;“明年保了寿命，谁说一定，有伴侣与东京？”&lt;/p&gt;
+&lt;p&gt;这里的“人寿”，表面上是保险，是对生命的保障；但在语境中，它更像是我们对未来最低限度的信任——只要还活着，一切都还有机会。&lt;/p&gt;
+&lt;p&gt;笔者认为，歌词在这里做了一个非常关键的切割：你可以保证“生命延续”，却无法保证“生活延续”。伴侣、关系、情感、心境，这些构成“东京”的要素，没有任何一种可以被保险。&lt;/p&gt;
+&lt;p&gt;进而，“东京”不再只是一个地名，而变成一种象征——象征那些必须在特定时间、特定状态、特定关系中完成的体验。&lt;/p&gt;
+&lt;p&gt;这种不可复制性，在下一句中被进一步强化：&lt;/p&gt;
+&lt;p&gt;“明年即使有热血，初樱初雪，又如何约定？”&lt;/p&gt;
+&lt;p&gt;即使时间循环，风景重现，甚至连情绪都似乎可以被唤回，但“约定”本身却无法成立。因为约定依赖的是人与人之间的连接，而这恰恰是最不可控的变量。&lt;/p&gt;
+&lt;p&gt;这意味着，我们习惯依赖的那种“以后再做，也一样”的判断，在这里彻底失效。&lt;/p&gt;
+&lt;h2&gt;四、当“下次一定”不再成立：在不确定中重新理解当下&lt;/h2&gt;
+&lt;p&gt;如果说前面的部分是在拆解逻辑，那么后半段歌词，则更像是在处理情绪的余震。&lt;/p&gt;
+&lt;p&gt;“好与差，都只不过是个巧合。一转侧，这种天国，或已再不。”&lt;/p&gt;
+&lt;p&gt;这里直接否定了“绝对稳定状态”的存在。所谓的“好”，并不是长期可以维持的结果，而更像是一种偶然的叠加。一旦条件稍有变化，那种看似理所当然的幸福，就可能消失。&lt;/p&gt;
+&lt;p&gt;紧接着的一句——&lt;/p&gt;
+&lt;p&gt;“几生修到有这日，不把握，会消失。”&lt;/p&gt;
+&lt;p&gt;几乎把这种偶然性推到了极致。它在提醒你：你所处的这个当下，本身就是低概率事件，是多种条件叠加后的结果。一旦错过，它并不会自动重来。&lt;/p&gt;
+&lt;p&gt;而整首歌最具毁灭性的句子，出现在结尾：&lt;/p&gt;
+&lt;p&gt;“还说下次做更好，谁料这刻是尾声。”&lt;/p&gt;
+&lt;p&gt;这不仅是否定“下次”，更是在否定“线性时间”的安全感。我们总以为人生是连续的、可延续的，但现实可能是离散的、不可回溯的。某一个瞬间，一旦过去，就成为终点，而不是中间节点。&lt;/p&gt;
+&lt;p&gt;于是，“趁一切都正好”就不再是一句轻盈的劝说，而是一种带着分量的判断。它不是在鼓励冲动，而是在指出一个事实：当不确定性成为常态，当未来不再可靠，当“下次一定”逐渐失效，你所能真正拥有的，就只剩下此刻。&lt;/p&gt;
+&lt;h2&gt;五、尾声：如果这一刻已经发生&lt;/h2&gt;
+&lt;p&gt;现在，请您看向墙上的钟表，抑或是手机屏幕角落的时间，回到我们自己眼下的生活。&lt;/p&gt;
+&lt;p&gt;那些被推迟到“以后”的事情，看似只是延后，实际上却在悄悄改变形态。有的会消失，有的会变质，有的会在你准备好的时候，已经不再属于你。&lt;/p&gt;
+&lt;p&gt;《东京人寿》并没有给出答案。它没有告诉你应该“现在就去”，还是“继续等待”。它只是通过一连串细致而克制的歌词，让你意识到一件事：&lt;/p&gt;
+&lt;p&gt;你不是在“现在”和“未来”之间做选择， 而是在“一个真实存在的此刻”和“一个无法保证的假设”之间做选择。&lt;/p&gt;
+&lt;p&gt;而当你已经走过那些被反复推迟的“明年”，当你开始不再轻易相信“下次一定”，这首歌留下的那个问题，就变得格外清晰——&lt;/p&gt;
+&lt;p&gt;如果这一刻已经发生，你还要不要再等？&lt;/p&gt;
+&lt;p&gt;共勉之。&lt;/p&gt;
+&lt;p&gt;参考文献：&lt;/p&gt;
+&lt;p&gt;[1]国际货币基金组织. 世界经济展望更新：危机如无前例，不确定的复苏（2020年6月）[EB/OL]. (2020-06-24) [2026-04-17].&lt;/p&gt;
+&lt;p&gt;[2]李强,安超.后疫情时期中国社会发展的挑战、动力与治理创新[J].探索与争鸣,2021,(03):35-46+177.&lt;/p&gt;
+&lt;p&gt;[3]Sabetta L .Instant gratification[J].Beverage Industry,2026,117(3):1.&lt;/p&gt;
+</content:encoded><category>乐评</category><category>流行音乐</category></item><item><title>博客搭建完成</title><link>https://auraduan.github.io/posts/blog-launched/</link><guid isPermaLink="true">https://auraduan.github.io/posts/blog-launched/</guid><description>使用 Twilight 模板搭建个人技术博客</description><pubDate>Sat, 09 May 2026 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;欢迎访问我的技术博客！&lt;/p&gt;
+&lt;h2&gt;关于本站&lt;/h2&gt;
+&lt;p&gt;这是一个基于 &lt;a href=&quot;https://github.com/Spr-Aachen/Twilight&quot;&gt;Twilight&lt;/a&gt; 模板搭建的个人博客，使用 Astro 框架开发。&lt;/p&gt;
+&lt;h3&gt;技术方向&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;低空飞行器开发&lt;/li&gt;
+&lt;li&gt;PX4 飞行控制&lt;/li&gt;
+&lt;li&gt;嵌入式系统&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;功能特性&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;🎨 响应式设计，支持桌面和移动端&lt;/li&gt;
+&lt;li&gt;🌙 深色/浅色主题切换&lt;/li&gt;
+&lt;li&gt;🔍 本地搜索功能&lt;/li&gt;
+&lt;li&gt;📝 Markdown 写作支持&lt;/li&gt;
+&lt;li&gt;🎵 音乐播放器&lt;/li&gt;
+&lt;li&gt;💬 评论系统&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;后续计划&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;整理 PX4 开发笔记&lt;/li&gt;
+&lt;li&gt;分享项目开发经验&lt;/li&gt;
+&lt;li&gt;记录飞行日志&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;欢迎持续关注！&lt;/p&gt;
+</content:encoded><category>博客</category><category>博客</category><category>技术</category></item><item><title>Guide for Template - Advanced Customization</title><link>https://auraduan.github.io/posts/advanced-guide/</link><guid isPermaLink="true">https://auraduan.github.io/posts/advanced-guide/</guid><description>Master the advanced features and customization options of the Twilight template.</description><pubDate>Sat, 10 Feb 2024 00:00:00 GMT</pubDate><content:encoded>&lt;p&gt;This guide covers advanced customization options and features available in the Twilight template, from global configurations to specialized Markdown extensions.&lt;/p&gt;
+&lt;h2&gt;Global Configuration&lt;/h2&gt;
+&lt;p&gt;The &lt;code&gt;twilight.config.yaml&lt;/code&gt; file is the heart of your blog&apos;s configuration. Here are some advanced settings you can tweak:&lt;/p&gt;
+&lt;h3&gt;Site &amp;amp; Localization&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Language &amp;amp; Translation&lt;/strong&gt;: Enable client-side translation using &lt;code&gt;site.translate.enable&lt;/code&gt;. You can choose different services and configure auto-detection.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Custom Fonts&lt;/strong&gt;: Add your own fonts by providing a CSS link or file path under &lt;code&gt;site.font&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Visual Effects&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Theme Color&lt;/strong&gt;: Change the primary color of your blog by adjusting the &lt;code&gt;site.themeColor.hue&lt;/code&gt; (0-360).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Wallpaper Modes&lt;/strong&gt;: Choose between &lt;code&gt;banner&lt;/code&gt;, &lt;code&gt;fullscreen&lt;/code&gt;, or &lt;code&gt;none&lt;/code&gt;. You can also enable a &lt;code&gt;carousel&lt;/code&gt; for multiple wallpapers with the &lt;code&gt;kenBurns&lt;/code&gt; effect.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Waves Effect&lt;/strong&gt;: Toggle the animated water ripple effect on the banner using &lt;code&gt;site.wallpaper.banner.waves.enable&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Particle Effects&lt;/strong&gt;: Enable floating particles in the background with &lt;code&gt;particle.enable&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;UI&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Navbar Transparency&lt;/strong&gt;: Adjust &lt;code&gt;site.wallpaper.banner.navbar.transparentMode&lt;/code&gt; between &lt;code&gt;semi&lt;/code&gt;, &lt;code&gt;full&lt;/code&gt;, or &lt;code&gt;semifull&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Sidebar Widgets&lt;/strong&gt;: Reorder or toggle sidebar components like &lt;code&gt;profile&lt;/code&gt;, &lt;code&gt;announcement&lt;/code&gt;, &lt;code&gt;categories&lt;/code&gt;, &lt;code&gt;tags&lt;/code&gt;, &lt;code&gt;toc&lt;/code&gt;, and &lt;code&gt;statistics&lt;/code&gt; in &lt;code&gt;sidebar.components&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Markdown Extensions&lt;/h2&gt;
+&lt;h3&gt;GitHub Repository Cards&lt;/h3&gt;
+&lt;p&gt;You can add dynamic cards that link to GitHub repositories, on page load, the repository information is pulled from the GitHub API.&lt;/p&gt;
+&lt;p&gt;::github{repo=&quot;Spr-Aachen/Twilight&quot;}&lt;/p&gt;
+&lt;p&gt;Create a GitHub repository card with the code &lt;code&gt;::github{repo=&quot;Spr-Aachen/Twilight&quot;}&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;::github{repo=&quot;Spr-Aachen/Twilight&quot;}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;Music Cards&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Online
+::music{meting=&quot;https://meting.spr-aachen.com/api?server=netease&amp;amp;type=song&amp;amp;id=1390882521&quot;}&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;::music{meting=&quot;https://meting.spr-aachen.com/api?server=netease&amp;amp;type=song&amp;amp;id=1390882521&quot;}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;ul&gt;
+&lt;li&gt;Local
+::music{title=&quot;深海之息&quot; artist=&quot;Youzee Music&quot; cover=&quot;https://p1.music.126.net/PhKOqFtljgHDDpKYM2ADUA==/109951169858309716.jpg&quot; audio=&quot;assets/music/深海之息.m4a&quot; lrc=&quot;assets/music/深海之息.lrc&quot;}&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;::music{title=&quot;深海之息&quot; artist=&quot;Youzee Music&quot; cover=&quot;https://p1.music.126.net/PhKOqFtljgHDDpKYM2ADUA==/109951169858309716.jpg&quot; audio=&quot;assets/music/深海之息.m4a&quot; lrc=&quot;assets/music/深海之息.lrc&quot;}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h3&gt;Admonitions&lt;/h3&gt;
+&lt;p&gt;Following types of admonitions are supported: &lt;code&gt;note&lt;/code&gt; &lt;code&gt;tip&lt;/code&gt; &lt;code&gt;important&lt;/code&gt; &lt;code&gt;warning&lt;/code&gt; &lt;code&gt;caution&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;:::note
+Highlights information that users should take into account, even when skimming.
+:::&lt;/p&gt;
+&lt;p&gt;:::tip
+Optional information to help a user be more successful.
+:::&lt;/p&gt;
+&lt;p&gt;:::important
+Crucial information necessary for users to succeed.
+:::&lt;/p&gt;
+&lt;p&gt;:::warning
+Critical content demanding immediate user attention due to potential risks.
+:::&lt;/p&gt;
+&lt;p&gt;:::caution
+Negative potential consequences of an action.
+:::&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Basic Syntax&lt;/strong&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;:::note
+Highlights information that users should take into account, even when skimming.
+:::
+
+:::tip
+Optional information to help a user be more successful.
+:::
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Custom Titles&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;The title of the admonition can be customized.
+:::note[MY CUSTOM TITLE]
+This is a note with a custom title.
+:::&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;:::note[MY CUSTOM TITLE]
+This is a note with a custom title.
+:::
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;GitHub Syntax&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;[!TIP]
+&lt;a href=&quot;https://github.com/orgs/community/discussions/16925&quot;&gt;The GitHub syntax&lt;/a&gt; is also supported.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;pre&gt;&lt;code&gt;&amp;gt; [!TIP]
+&amp;gt; The GitHub syntax is also supported.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Spoiler&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;You can add spoilers to your text. The text also supports &lt;strong&gt;Markdown&lt;/strong&gt; syntax.&lt;/p&gt;
+&lt;p&gt;The content :spoiler[is hidden &lt;strong&gt;ayyy&lt;/strong&gt;]!&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;The content :spoiler[is hidden **ayyy**]!
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;p&gt;For more details, check the &lt;a href=&quot;https://docs.twilight.spr-aachen.com&quot;&gt;Documentation&lt;/a&gt;.&lt;/p&gt;
+</content:encoded><category>Guides / Advanced Customization</category></item></channel></rss>

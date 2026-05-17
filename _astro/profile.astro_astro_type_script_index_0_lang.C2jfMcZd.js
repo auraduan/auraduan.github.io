@@ -1,0 +1,1 @@
+import{i as t}from"./umami-share.lXIzgBo3.js";import"./config.DcRlT49e.js";t(".site-stats-container",".site-stats-display","umami",!1);document.addEventListener("astro:page-load",()=>{t(".site-stats-container",".site-stats-display","umami",!1)});
