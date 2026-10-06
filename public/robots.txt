@@ -1,0 +1,10 @@
+# 搜索引擎爬虫规则
+#
+# 全站公开，没有需要屏蔽的目录。
+# 唯一的作用是指明 Sitemap 位置 —— 否则爬虫得靠猜，收录会慢。
+# Sitemap 由 @astrojs/sitemap 在构建时生成（sitemap-index.xml + sitemap-0.xml）。
+
+User-agent: *
+Allow: /
+
+Sitemap: https://auraduan.github.io/sitemap-index.xml

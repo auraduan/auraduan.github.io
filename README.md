@@ -11,12 +11,11 @@
 
 ## 当前状态（2026-10-06）
 
-- ✅ 需求对接完成，方案定稿 **v1.8**
-- ✅ Astro 7.3.5 + Tailwind 4.3.3 项目已搭好，**22 个页面构建通过**
-- ✅ 本地预览可用：`npm run dev`
-- ✅ 部署 workflow 已就位（`.github/workflows/deploy.yml`）
-- ⬜ **GitHub 仓库 `auraduan/auraduan.github.io` 待重建** —— 需网页操作，步骤见使用手册 §8
-- ⬜ 真实素材待替换 —— 清单见使用手册 §1
+- ✅ **已上线：https://auraduan.github.io/** —— 24 个页面，首次推送即部署成功
+- ✅ 需求对接完成，方案定稿 **v1.12**
+- ✅ Astro 7.3.5 + Tailwind 4.3.3，本地开发用 `npm run dev`
+- ✅ 部署链路：push 到 `main` 自动构建发布（`.github/workflows/deploy.yml` 是唯一通道）
+- ⬜ 剩下两件事：**真机验收**；`NAV` / `LINK_GROUPS` 里的工具链接仍是示例待换（其余素材已就位）
 
 ## 技术栈定调
 

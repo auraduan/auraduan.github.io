@@ -54,7 +54,7 @@ const ogImage = image ? new URL(image, Astro.site).href : undefined;
 
     {/*
       主题初始化必须内联在 <head> 中、早于渲染执行，否则刷新会闪白。
-      见 docs/需求方案.md §10 坑位 4。
+      见 docs/需求方案.md §9 坑位 4。
       Expressive Code 的代码主题由 .light / .dark 类驱动，两个类都要打。
     */}
     <script is:inline>
