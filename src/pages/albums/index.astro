@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import AlbumCard from '../../components/AlbumCard.astro';
+import { getPublishedAlbums } from '../../lib/content';
+
+const albums = await getPublishedAlbums();
+
+// 心情/场景筛选的选项，从数据里自动汇总
+const moods = [...new Set(albums.flatMap((a) => a.data.mood))].sort((a, b) =>
+  a.localeCompare(b, 'zh')
+);
+
+const artistCount = new Set(albums.map((a) => a.data.artist)).size;
+
+const rated = albums.filter((a) => a.data.rating !== undefined);
+const avgRating =
+  rated.length > 0
+    ? (rated.reduce((sum, a) => sum + (a.data.rating ?? 0), 0) / rated.length).toFixed(1)
+    : '—';
+
+// 年代分布
+const decadeMap = new Map<string, number>();
+for (const album of albums) {
+  const decade = `${Math.floor(album.data.year / 10) * 10}s`;
+  decadeMap.set(decade, (decadeMap.get(decade) ?? 0) + 1);
+}
+const decades = [...decadeMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
+---
+
+<BaseLayout title="专辑墙" description="听过并想留下几句话的唱片">
+  <PageHeader
+    title="专辑墙"
+    description="挑出来的唱片，每张都写了点什么。鼠标悬停可以翻到背面看评分。"
+  />
+
+  <div class="mx-auto max-w-[980px] px-6 pb-24">
+    <!-- 统计条 -->
+    {
+      albums.length > 0 && (
+        <div
+          class="mb-12 grid grid-cols-3 gap-6 rounded-card border border-line p-6"
+          data-reveal
+        >
+          <div>
+            <p class="text-h2 tabular-nums text-ink">{albums.length}</p>
+            <p class="mt-1 text-caption text-ink-muted">张专辑</p>
+          </div>
+          <div>
+            <p class="text-h2 tabular-nums text-ink">{artistCount}</p>
+            <p class="mt-1 text-caption text-ink-muted">位音乐人</p>
+          </div>
+          <div>
+            <p class="text-h2 tabular-nums text-ink">{avgRating}</p>
+            <p class="mt-1 text-caption text-ink-muted">平均评分</p>
+          </div>
+        </div>
+      )
+    }
+
+    <!-- 年代分布 -->
+    {
+      decades.length > 1 && (
+        <div class="mb-12" data-reveal>
+          <p class="mb-4 text-caption uppercase tracking-widest text-ink-muted">年代分布</p>
+          <ul class="space-y-2">
+            {decades.map(([decade, count]) => (
+              <li class="flex items-center gap-4">
+                <span class="w-[52px] shrink-0 text-caption tabular-nums text-ink-muted">
+                  {decade}
+                </span>
+                <span
+                  class="h-2 rounded-pill"
+                  style={`width: ${(count / maxDecade) * 70}%; background-color: var(--accent);`}
+                  aria-hidden="true"
+                />
+                <span class="text-caption tabular-nums text-ink-muted">{count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    <!-- 心情/场景筛选：纯前端，按标签过滤 -->
+    {
+      moods.length > 0 && (
+        <div class="mb-10 flex flex-wrap gap-2" data-reveal>
+          <button
+            type="button"
+            data-mood-filter=""
+            aria-pressed="true"
+            class="mood-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink transition-colors"
+          >
+            全部
+          </button>
+          {moods.map((mood) => (
+            <button
+              type="button"
+              data-mood-filter={mood}
+              aria-pressed="false"
+              class="mood-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink-muted transition-colors"
+            >
+              {mood}
+            </button>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      albums.length > 0 ? (
+        <div class="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+          {albums.map((album) => (
+            <div data-album-item>
+              <AlbumCard album={album} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="text-small text-ink-muted">
+          还没有专辑。在 <code>src/content/albums/&lt;id&gt;/</code> 下建 index.md 与 cover.png 就会出现。
+        </p>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  (() => {
+    const buttons = document.querySelectorAll('[data-mood-filter]');
+    const items = document.querySelectorAll('[data-album-item]');
+    if (buttons.length === 0) return;
+
+    for (const btn of buttons) {
+      btn.addEventListener('click', () => {
+        const selected = btn.dataset.moodFilter || '';
+
+        for (const b of buttons) {
+          const on = b === btn;
+          b.setAttribute('aria-pressed', String(on));
+          b.classList.toggle('is-active', on);
+        }
+
+        for (const item of items) {
+          const card = item.querySelector('.album-card');
+          const moods = (card?.dataset.moods || '').split('|').filter(Boolean);
+          const show = selected === '' || moods.includes(selected);
+          item.style.display = show ? '' : 'none';
+        }
+      });
+    }
+  })();
+</script>
+
+<style>
+  .mood-btn[aria-pressed='true'] {
+    background-color: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
+  }
+</style>

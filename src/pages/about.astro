@@ -1,0 +1,56 @@
+---
+import { Image } from 'astro:assets';
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import About from '../data/about.md';
+import { SITE } from '../site.config';
+
+/**
+ * 照片是可选的：把 portrait.jpg / .png / .webp / .avif 放进 src/assets/ 就会自动生效。
+ * 没有这个文件时页面照常渲染（显示占位框），不会构建失败。
+ */
+const portraits = import.meta.glob<{ default: ImageMetadata }>(
+  '../assets/portrait.{png,jpg,jpeg,webp,avif}',
+  { eager: true }
+);
+const portrait = Object.values(portraits)[0]?.default;
+---
+
+<BaseLayout title="关于" description={`关于 ${SITE.author}`}>
+  <article class="mx-auto max-w-[980px] px-6 pb-24 pt-20 md:pt-24">
+    <div class="mx-auto" style="max-width: 680px;">
+      <header class="flex flex-col items-start gap-7 sm:flex-row sm:items-center">
+        {
+          portrait ? (
+            <Image
+              src={portrait}
+              alt={`${SITE.author}的照片`}
+              widths={[160, 320]}
+              sizes="(max-width: 640px) 120px, 160px"
+              class="h-[120px] w-[120px] shrink-0 rounded-card object-cover sm:h-[160px] sm:w-[160px]"
+              loading="eager"
+            />
+          ) : (
+            <div
+              class="flex h-[120px] w-[120px] shrink-0 items-center justify-center rounded-card text-caption sm:h-[160px] sm:w-[160px]"
+              style="background-color: var(--surface-alt); color: var(--ink-muted);"
+            >
+              照片位
+            </div>
+          )
+        }
+
+        <div class="min-w-0">
+          <h1 class="text-h2 text-ink">{SITE.author}</h1>
+          <p class="mt-2 text-small text-ink-muted">{SITE.role}</p>
+        </div>
+      </header>
+
+      <hr class="mt-12 border-line" />
+
+      <div class="prose-article mt-12">
+        <About />
+      </div>
+    </div>
+  </article>
+</BaseLayout>

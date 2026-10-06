@@ -1,0 +1,150 @@
+---
+import { NAV, SITE } from '../site.config';
+import ThemeToggle from './ThemeToggle.astro';
+
+interface Props {
+  /**
+   * 首屏是整屏壁纸时置 true：页眉初始透明压在图上，滚动离开首屏后
+   * 自动恢复成常规的半透明近白底 + 发丝线。
+   * 没有脚本时页眉保持常规状态，属于安全降级。
+   */
+  overHero?: boolean;
+}
+
+const { overHero = false } = Astro.props;
+const path = Astro.url.pathname;
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+---
+
+<header
+  class="site-header fixed inset-x-0 top-0 z-50 h-12"
+  data-site-header
+  data-over-hero={overHero ? '' : undefined}
+>
+  <!--
+    页眉三段式：站名在左、按钮组在右（justify-between），**导航居中**。
+
+    导航为什么用绝对定位而不是网格：`justify-between` 只保证「间距相等」，
+    左右内容宽度不等时中间那组会明显偏右（站名 86px vs 按钮 32px → 偏移约 31px）。
+    网格 [1fr_auto_1fr] 看似能解决，但窄屏下右侧按钮组会被挤出容器（实测 500px 时
+    越过 px-6 内边距、390px 时整个移出视口）。绝对定位的 `left-1/2` + `-translate-x-1/2`
+    是纯几何关系，**与兄弟元素宽窄、是否隐藏完全无关**，因此最稳。
+
+    导航只在 ≥768px 出现，此时容器内至少还有 258px 余量，不会与两侧碰撞。
+  -->
+  <nav
+    class="relative mx-auto flex h-full max-w-[980px] items-center justify-between px-6"
+    aria-label="主导航"
+  >
+    <a href="/" class="nav-brand tap-area text-small font-semibold tracking-tight">{SITE.title}</a>
+
+    <!-- 桌面导航：绝对居中，脱离文档流因而不影响两侧 -->
+    <ul
+      class="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-7 md:flex"
+    >
+      {
+        NAV.map((item) => (
+          <li class="group relative">
+            <a
+              href={item.href}
+              target={item.external ? '_blank' : undefined}
+              rel={item.external ? 'noopener noreferrer' : undefined}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              class="nav-link text-small transition-colors"
+            >
+              {item.label}
+            </a>
+
+            {item.children && (
+              <div class="invisible absolute right-0 top-full pt-3 opacity-0 transition-opacity duration-200 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                <ul
+                  class="nav-panel min-w-[230px] rounded-card-sm border border-line p-2"
+                  style="background-color: var(--surface);"
+                >
+                  {item.children.map((child) => {
+                    // 下拉项没有 external 字段，按 href 是否以 http 开头自动识别外链
+                    const isExternal = child.href.startsWith('http');
+                    return (
+                      <li>
+                        <a
+                          href={child.href}
+                          target={isExternal ? '_blank' : undefined}
+                          rel={isExternal ? 'noopener noreferrer' : undefined}
+                          class="block rounded-md px-3 py-2 text-ink transition-colors hover:bg-surface-alt"
+                        >
+                          <span class="block text-small">{child.label}</span>
+                          {child.desc && (
+                            <span class="block text-caption text-ink-muted">{child.desc}</span>
+                          )}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+
+    <div class="flex items-center gap-3">
+      <ThemeToggle />
+
+      <!-- 移动端菜单：零 JS，用原生 details。
+           内边距用来撑大点击热区（28×21 → 52×37）——它是手机上唯一的主导航入口，
+           原先低于 WCAG 2.5.8 的 24×24 最低线。负外边距把那圈内边距「抵」回去，
+           所以文字位置与改动前完全一致，视觉上没有任何变化。 -->
+      <details class="relative md:hidden">
+        <summary
+          class="nav-toggle -mr-3 cursor-pointer list-none px-3 py-2 text-small transition-colors"
+          aria-label="打开菜单">菜单</summary
+        >
+          <!-- max-height + 滚动：现在只有 5 项不会触发，
+               但以后往导航里加工具链接时不至于把面板顶出屏幕 -->
+          <ul
+            class="nav-panel absolute right-0 top-full mt-3 max-h-[70svh] min-w-[200px] overflow-y-auto overscroll-contain rounded-card-sm border border-line p-2"
+            style="background-color: var(--surface);"
+          >
+          {
+            NAV.map((item) => (
+              <li>
+                <a href={item.href} class="block rounded-md px-3 py-2 text-small text-ink">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </details>
+    </div>
+  </nav>
+</header>
+
+<script is:inline>
+  // 首屏之上的页眉透明态。紧跟在页眉之后执行，早于首次绘制，因此不会闪。
+  (() => {
+    const header = document.querySelector('[data-site-header]');
+    if (!header || !header.hasAttribute('data-over-hero')) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const THRESHOLD = 40;
+    const sync = () => {
+      header.classList.toggle('is-transparent', window.scrollY < THRESHOLD);
+    };
+
+    sync();
+    window.addEventListener('scroll', sync, { passive: true });
+  })();
+</script>
+
+<style>
+  /* 下拉面板与移动菜单始终用面板自身的文字色，不受页眉透明态影响 */
+  .nav-panel a {
+    color: var(--ink);
+  }
+
+  .nav-panel a:hover {
+    color: var(--ink);
+  }
+</style>

@@ -1,0 +1,102 @@
+---
+import { Image } from 'astro:assets';
+import { formatDate, readingTime, resolveAspect, type Post } from '../lib/content';
+
+interface Props {
+  post: Post;
+  /**
+   * row    —— 横向卡片：文字在左、封面在右，带底色块。用于文章列表页。
+   * column —— 纵向卡片：封面在上、文字在下，无底色。用于网格布局。
+   */
+  variant?: 'row' | 'column';
+}
+
+const { post, variant = 'column' } = Astro.props;
+const { data, body, id } = post;
+
+const isRow = variant === 'row';
+const href = `/posts/${id}`;
+const aspect = resolveAspect(data.coverAspect, data.cover);
+---
+
+<a
+  href={href}
+  class:list={['post-card group block', isRow ? 'post-card--row' : 'post-card--column']}
+>
+  <!--
+    封面在 DOM 里排在文字之前：移动端天然显示在上方；
+    行式布局在桌面端用 order 把它挪到右侧。
+  -->
+  {
+    data.cover && (
+      <div
+        class:list={['post-cover overflow-hidden rounded-card-sm', isRow && 'order-1 shrink-0 sm:order-2 sm:w-[220px]']}
+        style={`aspect-ratio: ${aspect};`}
+      >
+        <Image
+          src={data.cover}
+          alt=""
+          widths={isRow ? [220, 440, 660] : [320, 640, 960]}
+          sizes={
+            isRow
+              ? '(max-width: 640px) 100vw, 220px'
+              : '(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 300px'
+          }
+          class="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    )
+  }
+
+  <div class:list={['post-body min-w-0 flex-1', isRow && 'order-2 sm:order-1']}>
+    <h3 class="text-h3 text-ink transition-colors group-hover:text-accent">{data.title}</h3>
+    <p class="mt-2 line-clamp-2 text-small leading-relaxed text-ink-muted">{data.description}</p>
+    <div class="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption text-ink-muted">
+      <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
+      <span aria-hidden="true">·</span>
+      <span>{data.category}</span>
+      <span aria-hidden="true">·</span>
+      <span>约 {readingTime(body)} 分钟</span>
+    </div>
+  </div>
+</a>
+
+<style>
+  /* 卡片一律靠底色区分层次，不描边框（需求方案 §6.9） */
+  .post-card--row {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    border-radius: var(--radius-card);
+    background-color: var(--surface-alt);
+    transition:
+      transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .post-card--row:hover {
+    transform: translateY(-2px);
+  }
+
+  @media (min-width: 640px) {
+    .post-card--row {
+      flex-direction: row;
+      align-items: center;
+      gap: 32px;
+      padding: 28px;
+    }
+  }
+
+  /* 纵向卡片不铺底色：封面本身已是视觉主体，再加底色会显得脏 */
+  .post-card--column .post-body {
+    margin-top: 16px;
+  }
+
+  .post-card--column .post-cover,
+  .post-card--row .post-cover {
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+</style>

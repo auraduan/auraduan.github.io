@@ -1,0 +1,34 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import { collectTags, getPublishedPosts } from '../../lib/content';
+
+const posts = await getPublishedPosts();
+const tags = collectTags(posts);
+---
+
+<BaseLayout title="标签" description="按主题浏览全部文章">
+  <PageHeader title="标签" description={`共 ${tags.length} 个标签。`} />
+
+  <div class="mx-auto max-w-[980px] px-6 pb-24">
+    {
+      tags.length > 0 ? (
+        <ul class="flex flex-wrap gap-3">
+          {tags.map(({ tag, count }) => (
+            <li data-reveal>
+              <a
+                href={`/tags/${tag}`}
+                class="inline-flex items-baseline gap-2 rounded-pill border border-line px-4 py-2 transition-colors hover:bg-surface-alt"
+              >
+                <span class="text-small text-ink">{tag}</span>
+                <span class="text-caption text-ink-muted">{count}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="text-small text-ink-muted">还没有标签。</p>
+      )
+    }
+  </div>
+</BaseLayout>

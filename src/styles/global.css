@@ -1,0 +1,437 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/noto-sans-sc';
+
+/**
+ * 设计令牌 —— 全站视觉基线，取值依据 docs/需求方案.md §6。
+ * 改视觉只改这个文件，不要在组件里散落硬编码颜色。
+ */
+
+/* 深色模式由 <html class="dark"> 驱动（而非 prefers-color-scheme），
+   这样才能支持手动切换。主题初始化脚本内联在 BaseLayout 的 <head> 中，防闪白。 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans:
+    'Inter Variable', 'Noto Sans SC Variable', -apple-system, BlinkMacSystemFont, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* 字号阶梯 —— §6.4 */
+  --text-hero: clamp(2.5rem, 6vw, 5rem);
+  --text-hero--line-height: 1.05;
+  --text-hero--letter-spacing: -0.02em;
+  --text-h1: 3rem;
+  --text-h1--line-height: 1.1;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h2: 2rem;
+  --text-h2--line-height: 1.2;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 1.3;
+  --text-body: 1.0625rem; /* 17px —— Apple 官网的正文取值，不是 16px */
+  --text-body--line-height: 1.5;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+
+  /* 圆角 —— §6.6 */
+  --radius-card: 18px;
+  --radius-card-sm: 12px;
+  --radius-pill: 980px;
+
+  /* 分区留白 —— §6.5 */
+  --spacing-section: 8rem;
+}
+
+/* 颜色令牌映射为 Tailwind 工具类：bg-surface / text-ink / border-line … */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent: var(--accent);
+  --color-line: var(--line);
+}
+
+/**
+ * 触屏基础行为 —— §6.13
+ *
+ * 竖屏没有 hover，用户能感知到的反馈只剩「按下」这一瞬。这三条是全部依据。
+ * hover 态本身不用处理：Tailwind 4 已自动把 `hover:` 包进 `@media (hover: hover)`，
+ * 触屏上根本不会触发，所以不存在「点完还留着高亮」的问题。
+ */
+
+/* iOS 点击默认闪一块灰色矩形，会和下面的 :active 反馈打架，去掉 */
+a,
+button,
+summary,
+label,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 去掉「双击缩放」带来的 300ms 点击判定等待，按压立即响应 */
+a,
+button,
+summary,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+/* 按压反馈 —— 触屏上唯一的「我点到了」信号。
+   刻意用 opacity 而不是缩放/位移：不触发重排，也不会让文字抖动。 */
+a:active,
+button:active,
+summary:active,
+[role='button']:active {
+  opacity: 0.6;
+}
+
+/**
+ * 触控热区放大 —— 竖直方向不足 24px 的小文字链接挂上这个类。
+ *
+ * 用 ::after 覆盖一圈来接管点击，**完全不参与布局**，
+ * 所以热区变大而视觉位置一个像素都不动（比「padding + 负 margin」更干净）。
+ *
+ * ⚠ 外扩量必须**小于相邻目标的间隙**，否则会抢走隔壁的点击。
+ * 所以密集排列的元素（如 8px 间距的标签 pill）**不要**用它——
+ * 那种情况应当直接给足 padding（`py-1.5` + `inline-block`），让行高真的长起来。
+ */
+.tap-area {
+  position: relative;
+}
+
+.tap-area::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem 0; /* 上下各 8px：15px 的页脚链接 → 31px */
+}
+
+/* 浅色 —— §6.2 */
+:root {
+  --surface: #ffffff;
+  --surface-alt: #f5f5f7;
+  --ink: #1d1d1f;
+  --ink-muted: #6e6e73;
+  --accent: #0071e3;
+  --line: rgba(0, 0, 0, 0.08);
+  color-scheme: light;
+
+  /**
+   * 页眉高度。页眉是 fixed 定位，脱离文档流，浏览器不知道它占了空间——
+   * 锚点跳转与「返回顶部」都需要靠这个值补偿，见下方 [id] 的 scroll-margin-top。
+   * 改导航栏高度时**必须同步改这里**（Nav.astro 对应 h-12 即 3rem）。
+   */
+  --header-h: 3rem;
+
+  /* 页眉：刻意不用纯白。#fbfbfd 是 Apple 官网导航栏的实际取值——
+     带一丝冷调的近白，配毛玻璃后能和纯白正文区拉开层次。 */
+  --header-bg: rgba(251, 251, 253, 0.82);
+  --header-line: rgba(0, 0, 0, 0.07);
+  --header-ink: #1d1d1f;
+  --header-ink-muted: #6e6e73;
+
+  /* 首屏遮罩：浅色模式下页面是白的，遮罩轻一点，让照片透气 */
+  --hero-scrim: rgba(0, 0, 0, 0.3);
+  --hero-ink: #ffffff;
+  --hero-ink-muted: rgba(255, 255, 255, 0.78);
+}
+
+/* 深色 —— §6.2 */
+.dark {
+  --surface: #000000;
+  --surface-alt: #1d1d1f;
+  --ink: #f5f5f7;
+  --ink-muted: #86868b;
+  --accent: #2997ff;
+  --line: rgba(255, 255, 255, 0.1);
+  color-scheme: dark;
+
+  /* #161617 同样取自 Apple 官网的深色导航栏 */
+  --header-bg: rgba(22, 22, 23, 0.82);
+  --header-line: rgba(255, 255, 255, 0.1);
+  --header-ink: #f5f5f7;
+  --header-ink-muted: #98989d;
+
+  /* 深色模式下页面本身就是黑的，遮罩加重，让首屏「沉」进页面 */
+  --hero-scrim: rgba(0, 0, 0, 0.42);
+  --hero-ink: #ffffff;
+  --hero-ink-muted: rgba(255, 255, 255, 0.72);
+}
+
+/**
+ * 首屏之上的页眉状态。
+ *
+ * 只在首页由脚本加上：滚动到首屏以外就自动摘掉，页眉恢复成常规的
+ * 半透明近白底。没脚本时页眉始终是常规状态——即降级可用，不会出现
+ * 白色文字压在白色内容上。
+ */
+.site-header.is-transparent {
+  --header-bg: transparent;
+  --header-line: transparent;
+  --header-ink: #ffffff;
+  --header-ink-muted: rgba(255, 255, 255, 0.78);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.site-header {
+  background-color: var(--header-bg);
+  border-bottom: 0.5px solid var(--header-line);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  transition:
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 页眉内的文字统一吃 --header-ink，这样透明态能整体翻成白色。
+   注意只作用于显式命名的导航元素——不能笼统写 `.site-header a`，
+   否则下拉面板里的链接会被一起改色，在透明态下压在白色面板上直接看不见。 */
+.site-header a.nav-link,
+.site-header summary.nav-toggle,
+.site-header button.nav-toggle {
+  color: var(--header-ink-muted);
+}
+
+.site-header a.nav-link:hover,
+.site-header summary.nav-toggle:hover,
+.site-header button.nav-toggle:hover {
+  color: var(--header-ink);
+}
+
+.site-header a.nav-brand,
+.site-header a[aria-current='page'] {
+  color: var(--header-ink);
+}
+
+/**
+ * 锚点跳转的落点补偿。
+ *
+ * 页眉固定占住视口顶部 48px，浏览器跳转到 #锚点时并不知道这件事，
+ * 于是目标标题正好被压在页眉下面（点目录里的章节名就会遇到）。
+ * scroll-margin-top 让浏览器把这段距离算进滚动位置。
+ *
+ * 对所有带 id 的元素生效，而不是只针对标题——这样目录锚点、跳转到正文的
+ * 无障碍链接、以及日后可能加的任何锚点都一并解决。
+ */
+[id] {
+  scroll-margin-top: calc(var(--header-h) + 2rem);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: var(--surface);
+    color: var(--ink);
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 全站只用 400 / 600 两档字重（§6.4），标题统一 600 */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+/* 全站必须尊重「减少动效」偏好 —— §6.8 / §6.10 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   文章正文排版
+   Tailwind 4 已不含 typography 插件，这里按 §6.4 的字号阶梯手写。
+   ------------------------------------------------------------------ */
+.prose-article {
+  color: var(--ink);
+}
+
+.prose-article > * + * {
+  margin-top: 1.5em;
+}
+
+.prose-article h2 {
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin-top: 2.5em;
+}
+
+.prose-article h3 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  margin-top: 2em;
+}
+
+.prose-article h2 + *,
+.prose-article h3 + * {
+  margin-top: 0.75em;
+}
+
+.prose-article p,
+.prose-article li {
+  line-height: 1.75;
+}
+
+.prose-article a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.prose-article a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-article strong {
+  font-weight: 600;
+}
+
+.prose-article ul,
+.prose-article ol {
+  padding-left: 1.5em;
+}
+
+.prose-article ul {
+  list-style: disc;
+}
+
+.prose-article ol {
+  list-style: decimal;
+}
+
+.prose-article li + li {
+  margin-top: 0.4em;
+}
+
+.prose-article li::marker {
+  color: var(--ink-muted);
+}
+
+.prose-article blockquote {
+  border-left: 2px solid var(--line);
+  padding-left: 1.25em;
+  color: var(--ink-muted);
+}
+
+.prose-article code:not(pre code) {
+  font-family: var(--font-mono);
+  font-size: 0.89em;
+  background-color: var(--surface-alt);
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+}
+
+.prose-article img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-card-sm);
+}
+
+.prose-article hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 3em 0;
+}
+
+.prose-article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.prose-article th,
+.prose-article td {
+  text-align: left;
+  padding: 0.6em 0.8em;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.prose-article th {
+  font-weight: 600;
+}
+
+/**
+ * 窄屏下的表格：宁可横向滚动，也不要把列压扁。
+ *
+ * 表格原本是 `width: 100%`，在 390px 屏幕上 5 列会被平摊成每列 ~50px——
+ * 数字挤成竖排、根本读不了，而且**不会触发页面横向溢出**，所以靠溢出审计发现不了。
+ *
+ * 解法：让表格自己成为滚动容器，同时给单元格一个最小宽度。
+ * 列的总量撑不下时表格内部滚动，页面整体宽度不受影响。
+ */
+@media (max-width: 640px) {
+  .prose-article table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 单元格不许被压到 7em 以下；不够就滚，而不是挤 */
+  .prose-article th,
+  .prose-article td {
+    min-width: 7em;
+  }
+}
+
+/* KaTeX 会同时输出 MathML 与 HTML 两套结构：MathML 供无障碍与复制用，
+   视觉上必须隐藏。这条规则本应在 katex.min.css 里，这里加一份兜底——
+   万一样式表加载延迟或失败，两套输出会叠在一起显示，
+   看起来就是「公式重叠、乱成一团」。 */
+.katex .katex-mathml {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* KaTeX 公式在窄屏上可能溢出，允许横向滚动（§6.5 的可读性要求） */
+.prose-article .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25em 0;
+}
+
+/* Mermaid 图容器 */
+.prose-article .mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 2em 0;
+}

@@ -1,0 +1,241 @@
+---
+import { Picture } from 'astro:assets';
+import { SITE, WALLPAPER_INTERVAL_MS } from '../site.config';
+
+/**
+ * 首屏全屏壁纸轮播 + Ken Burns 微动效。
+ *
+ * 实现要点（严格对应 docs/需求方案.md §6.10）：
+ *  - 纯 CSS 动画驱动，**零 JavaScript**
+ *  - 「轮播」与「动态」一次实现：淡入淡出负责切换，Ken Burns 负责运动
+ *  - 性能红线：首图优先加载，其余 lazy；AVIF/WebP；响应式尺寸；
+ *    移动端降级为单张静态图；尊重 prefers-reduced-motion
+ *
+ * 壁纸来源与主题适配：
+ *   src/assets/wallpapers/        共用图（浅色深色都用它）
+ *   src/assets/wallpapers/light/  浅色模式专用（可选）
+ *   src/assets/wallpapers/dark/   深色模式专用（可选）
+ * 子目录留空时自动回退到共用图。文件名顺序即轮播顺序（用 01-、02- 前缀控制）。
+ * 遮罩强度由 --hero-scrim 按主题切换，见 styles/global.css。
+ */
+
+const patterns = '{png,jpg,jpeg,webp,avif}';
+
+const sharedMods = import.meta.glob<{ default: ImageMetadata }>(
+  '../assets/wallpapers/*.{png,jpg,jpeg,webp,avif}',
+  { eager: true }
+);
+const lightMods = import.meta.glob<{ default: ImageMetadata }>(
+  '../assets/wallpapers/light/*.{png,jpg,jpeg,webp,avif}',
+  { eager: true }
+);
+const darkMods = import.meta.glob<{ default: ImageMetadata }>(
+  '../assets/wallpapers/dark/*.{png,jpg,jpeg,webp,avif}',
+  { eager: true }
+);
+
+const toSorted = (mods: Record<string, { default: ImageMetadata }>) =>
+  Object.entries(mods)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, mod]) => mod.default);
+
+const shared = toSorted(sharedMods);
+const lightOnly = toSorted(lightMods);
+const darkOnly = toSorted(darkMods);
+
+/** 每个主题最终用哪一组：有专用图就用专用的，否则回退共用图 */
+const lightSet = lightOnly.length > 0 ? lightOnly : shared;
+const darkSet = darkOnly.length > 0 ? darkOnly : shared;
+
+/**
+ * 两套图是同一个数组引用 = 没有专用图 = 只渲染一组。
+ * 这样默认情况下首屏只下载一张图，不会平白多一份开销。
+ */
+const isSplit = lightSet !== darkSet;
+
+type Timing = {
+  intervalSec: number;
+  cycleSec: number;
+  slotPct: number;
+  fadePct: number;
+  animate: boolean;
+};
+
+const intervalSec = WALLPAPER_INTERVAL_MS / 1000;
+
+function buildTiming(count: number): Timing {
+  const cycleSec = count * intervalSec;
+  const slotPct = count > 0 ? 100 / count : 0;
+  const fadeSec = 1.2;
+  const fadePct = count > 1 ? Math.min(slotPct / 3, (fadeSec / cycleSec) * 100) : 0;
+  return { intervalSec, cycleSec, slotPct, fadePct, animate: count > 1 };
+}
+
+/** 每张图的可见窗口由 animation-delay 错开，同组共用一组关键帧 */
+function buildKeyframes(name: string, t: Timing): string {
+  if (!t.animate) return '';
+  return `
+@keyframes ${name} {
+  0% { opacity: 0; }
+  ${t.fadePct.toFixed(3)}% { opacity: 1; }
+  ${(t.slotPct - t.fadePct).toFixed(3)}% { opacity: 1; }
+  ${t.slotPct.toFixed(3)}% { opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes ${name}-kb {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}`;
+}
+
+const groups = isSplit
+  ? [
+      { key: 'light', items: lightSet },
+      { key: 'dark', items: darkSet },
+    ]
+  : [{ key: 'shared', items: shared }];
+
+const timings = new Map(groups.map((g) => [g.key, buildTiming(g.items.length)]));
+const dynamicCss = groups
+  .map((g) => buildKeyframes(`wp-cycle-${g.key}`, timings.get(g.key)!))
+  .join('\n');
+---
+
+<section
+  class="relative h-svh min-h-[560px] w-full overflow-hidden"
+  style="background-color: #101418;"
+  aria-label="站点首屏"
+>
+  {
+    shared.length === 0 && !isSplit ? (
+      <div class="absolute inset-0" style="background-color: var(--surface-alt);" />
+    ) : (
+      groups.map((group) => {
+        const t = timings.get(group.key)!;
+        return (
+          <div
+            class:list={[
+              'hero-group absolute inset-0',
+              isSplit && `hero-group--${group.key}`,
+            ]}
+          >
+            {group.items.map((wp, i) => (
+              <div
+                class="wp-layer absolute inset-0"
+                style={
+                  t.animate
+                    ? `opacity: 0; animation: wp-cycle-${group.key} ${t.cycleSec}s linear infinite; animation-delay: -${(i * t.intervalSec).toFixed(2)}s;`
+                    : i === 0
+                      ? 'opacity: 1;'
+                      : 'display: none;'
+                }
+              >
+                <div
+                  class="wp-kb h-full w-full"
+                  style={
+                    t.animate ? `animation: wp-kb-${group.key} ${t.intervalSec}s linear infinite;` : undefined
+                  }
+                >
+                  <Picture
+                    src={wp}
+                    formats={['avif', 'webp']}
+                    widths={[800, 1280, 1920]}
+                    sizes="100vw"
+                    alt=""
+                    /* 分主题时两组都留在 DOM 里，靠 display:none 让未启用那组不下载，
+                       所以只能用 lazy；未分主题时首图走 eager + 高优先级。 */
+                    loading={isSplit ? 'lazy' : i === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={i === 0 ? 'high' : 'auto'}
+                    decoding={!isSplit && i === 0 ? 'sync' : 'async'}
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })
+    )
+  }
+
+  <!--
+    遮罩：保证叠加文字的对比度达到 WCAG AA。
+    强度按主题切——浅色模式轻一些让照片透气，深色模式重一些让首屏沉进页面。
+    刻意使用纯色而非渐变，遵守 §6.9「不要渐变」。
+  -->
+  <div class="absolute inset-0" style="background-color: var(--hero-scrim);"></div>
+
+  <div
+    class="relative z-10 mx-auto flex h-full max-w-[980px] flex-col items-center justify-center px-6 text-center"
+  >
+    <h1 class="text-hero max-w-[18ch]" style="color: var(--hero-ink);">{SITE.title}</h1>
+    <p class="mt-5 max-w-[42ch] text-body" style="color: var(--hero-ink-muted);">
+      {SITE.subtitle}
+    </p>
+
+    <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+      <a
+        href="/posts"
+        class="rounded-pill px-6 py-2.5 text-small transition-opacity hover:opacity-85"
+        style="background-color: var(--accent); color: #ffffff;">读文章</a
+      >
+      <a
+        href="/albums"
+        class="rounded-pill px-6 py-2.5 text-small transition-colors hover:bg-white/10"
+        style="border: 0.5px solid rgba(255, 255, 255, 0.35); color: var(--hero-ink);"
+        >专辑墙</a
+      >
+    </div>
+  </div>
+</section>
+
+<style is:inline set:html={dynamicCss}></style>
+
+<style>
+  .wp-layer picture,
+  .wp-layer img {
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+
+  /* 分主题时，未启用的那一组整体移出渲染树——
+     配合 loading="lazy" 其图片不会被下载。
+     主题类由 BaseLayout 的内联脚本在首次绘制前就打好，因此不会闪。 */
+  .dark .hero-group--light {
+    display: none;
+  }
+
+  :root:not(.dark) .hero-group--dark {
+    display: none;
+  }
+
+  /* 红线 5：尊重「减少动效」——停止轮播与推近，只留每组第一张静态图。
+     选择器权重高于 global.css 里的 * 规则，因此能覆盖。 */
+  @media (prefers-reduced-motion: reduce) {
+    .wp-layer {
+      animation: none !important;
+      opacity: 0 !important;
+    }
+    .wp-layer:first-child {
+      opacity: 1 !important;
+    }
+    .wp-kb {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+
+  /* 红线 4：移动端降级为单张静态图，省流量也省电 */
+  @media (max-width: 640px) {
+    .wp-layer {
+      animation: none !important;
+    }
+    .wp-layer:first-child {
+      opacity: 1 !important;
+    }
+    .wp-layer:not(:first-child) {
+      display: none !important;
+    }
+  }
+</style>

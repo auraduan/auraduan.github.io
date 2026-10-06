@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import { LINK_GROUPS } from '../site.config';
+---
+
+<BaseLayout title="工具" description="我常用的网站与服务">
+  <PageHeader title="工具" description="日常会用到的网站。导航栏里的入口就是从这里来的。" />
+
+  <div class="mx-auto max-w-[980px] px-6 pb-24">
+    {
+      LINK_GROUPS.map((group) => (
+        <section class="mb-16" data-reveal>
+          <h2 class="text-h3 text-ink">{group.title}</h2>
+          <ul class="mt-6 grid gap-4 sm:grid-cols-2">
+            {group.items.map((item) => {
+              const external = item.href.startsWith('http');
+              return (
+                <li>
+                  <a
+                    href={item.href}
+                    target={external ? '_blank' : undefined}
+                    rel={external ? 'noopener noreferrer' : undefined}
+                    class="block rounded-card border border-line p-5 transition-colors hover:bg-surface-alt"
+                  >
+                    <span class="block text-body text-ink">{item.label}</span>
+                    {item.desc && (
+                      <span class="mt-1 block text-caption text-ink-muted">{item.desc}</span>
+                    )}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+</BaseLayout>

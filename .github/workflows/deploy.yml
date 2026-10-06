@@ -1,0 +1,83 @@
+# 部署到 GitHub Pages
+#
+# 这是本站**唯一**的部署通道 —— 不要再手写第二个 deploy 脚本。
+# 旧站吃过这个亏：两条通道并存，最后不知道线上跑的是哪个版本。
+#
+# 需要配合的仓库设置：Settings → Pages → Source 选「GitHub Actions」。
+
+name: Deploy to GitHub Pages
+
+on:
+  # 推送到 main 即触发
+  push:
+    branches: [main]
+  # 也可以在 Actions 页手动触发
+  workflow_dispatch:
+
+# 允许这个 job 读取仓库并创建 Pages 部署
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个部署。用 false 而不是 true：
+# 宁可等前一个跑完，也不要在发布中途取消，避免留下半成品。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v7
+
+      - name: 准备 Node
+        uses: actions/setup-node@v7
+        with:
+          # Astro 7 要求 Node >= 22.12
+          node-version: 24
+          cache: npm
+
+      - name: 安装依赖
+        # 用 --ignore-scripts 而不是 npm ci，原因有两条：
+        #
+        # 1) 本项目的 package-lock.json 里缺少 esbuild 平台可选依赖的条目
+        #    （npm 对可选依赖的安装失败是**静默跳过**的，生成锁文件时本机文件被占用，
+        #    于是这个条目根本没写进去）。npm ci 严格照锁文件装，会漏掉这个二进制，
+        #    随后以「generateBinPath」这种毫不相关的报错把构建炸掉。
+        # 2) 跳过安装脚本，避免 esbuild 的 postinstall 在二进制缺失时先一步失败，
+        #    那样连补救的机会都没有。
+        #
+        # 本项目所有原生二进制（sharp / rolldown / tailwind oxide / satteri …）
+        # 都通过 optionalDependencies 分发，不依赖 postinstall，所以跳过是安全的。
+        run: npm install --ignore-scripts
+
+      - name: 补齐 esbuild 平台二进制
+        # 版本从已装的 esbuild 反查，不写死——否则日后 esbuild 升级会出现版本错配。
+        run: |
+          ESBUILD_VERSION=$(node -p "require('esbuild/package.json').version")
+          npm install --no-save "@esbuild/linux-x64@${ESBUILD_VERSION}"
+
+      - name: 构建
+        run: npm run build
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v6
+
+      - name: 上传产物
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

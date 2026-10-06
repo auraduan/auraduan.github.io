@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="页面不存在" description="没有找到这个页面">
+  <div class="mx-auto flex max-w-[980px] flex-col items-center px-6 pb-32 pt-32 text-center">
+    <p class="text-caption uppercase tracking-widest text-ink-muted">404</p>
+    <h1 class="mt-4 text-h1 text-ink">这个页面不存在</h1>
+    <p class="mt-4 max-w-[42ch] text-body text-ink-muted">
+      链接可能已经失效，或者我当年把 URL 改过——那样的话是我的问题。
+    </p>
+
+    <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+      <a
+        href="/"
+        class="rounded-pill px-6 py-2.5 text-small text-white transition-opacity hover:opacity-85"
+        style="background-color: var(--accent);">回首页</a
+      >
+      <a
+        href="/posts"
+        class="rounded-pill border border-line px-6 py-2.5 text-small text-ink transition-colors hover:bg-surface-alt"
+        >看文章</a
+      >
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,96 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroCarousel from '../components/HeroCarousel.astro';
+import PostCard from '../components/PostCard.astro';
+import AlbumCard from '../components/AlbumCard.astro';
+import { getPublishedAlbums, getPublishedPosts } from '../lib/content';
+
+const posts = await getPublishedPosts();
+const albums = await getPublishedAlbums();
+const recent = posts.slice(0, 3);
+const featuredAlbums = albums.filter((a) => a.data.pick).slice(0, 4);
+const albumPreview = featuredAlbums.length > 0 ? featuredAlbums : albums.slice(0, 4);
+---
+
+<BaseLayout wide overHero>
+  <HeroCarousel />
+
+  <!-- 最近文章 -->
+  <section class="border-t border-line">
+    <div class="mx-auto max-w-[980px] px-6 py-16 md:py-20">
+      <div class="mb-10 flex items-end justify-between gap-6" data-reveal>
+        <h2 class="text-h2 text-ink">最近写的</h2>
+        <a href="/posts" class="tap-area shrink-0 text-small text-accent hover:underline">全部文章</a>
+      </div>
+
+      {
+        recent.length > 0 ? (
+          <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+            {recent.map((post) => (
+              <div data-reveal>
+                <PostCard post={post} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-small text-ink-muted">
+            还没有文章。把 .md 放进 <code>src/content/posts/</code> 就会出现在这里。
+          </p>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- 专辑墙入口 -->
+  <section style="background-color: var(--surface-alt);">
+    <div class="mx-auto max-w-[980px] px-6 py-16 md:py-20">
+      <div class="mb-10 flex items-end justify-between gap-6" data-reveal>
+        <div>
+          <h2 class="text-h2 text-ink">在听什么</h2>
+          <p class="mt-2 text-small text-ink-muted">挑出来的一些唱片，鼠标悬停可以翻到背面。</p>
+        </div>
+        <a href="/albums" class="tap-area shrink-0 text-small text-accent hover:underline">整面墙</a>
+      </div>
+
+      {
+        albumPreview.length > 0 ? (
+          <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {albumPreview.map((album) => (
+              <div data-reveal>
+                <AlbumCard album={album} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-small text-ink-muted">还没有专辑。</p>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- 入口区 -->
+  <section class="border-t border-line">
+    <div class="mx-auto max-w-[980px] px-6 py-16 md:py-20" data-reveal>
+      <h2 class="text-h2 text-ink">再逛逛</h2>
+      <ul class="mt-8 grid gap-4 sm:grid-cols-3">
+        {
+          [
+            { href: '/archive', title: '归档', desc: '按时间翻全部文章' },
+            { href: '/tags', title: '标签', desc: '按主题找内容' },
+            { href: '/links', title: '工具', desc: '我常用的网站' },
+          ].map((item) => (
+            <li>
+              <a
+                href={item.href}
+                class="block rounded-card border border-line p-6 transition-colors hover:bg-surface-alt"
+              >
+                <span class="block text-h3 text-ink">{item.title}</span>
+                <span class="mt-1 block text-small text-ink-muted">{item.desc}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</BaseLayout>

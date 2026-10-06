@@ -1,0 +1,155 @@
+---
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+
+const { headings } = Astro.props;
+---
+
+<nav class="toc" aria-label="文章目录">
+  <p class="mb-3 text-caption uppercase tracking-widest text-ink-muted">目录</p>
+
+  <ul class="toc-list">
+    {
+      headings.map((h) => (
+        <li class:list={['toc-item', h.depth === 3 && 'toc-item--h3']}>
+          <a href={`#${h.slug}`} data-toc-link={h.slug}>
+            {h.text}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<script>
+  /**
+   * 阅读位置跟随：滚动时把当前所在章节的目录项标为当前位置。
+   *
+   * 判定方式是「最后一个已经越过基准线的标题」——比 IntersectionObserver
+   * 更稳，因为长章节里 IO 会长时间收不到事件。滚动回调用 rAF 节流。
+   */
+  (() => {
+    const links = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]')
+    );
+    if (links.length === 0) return;
+
+    const entries = links
+      .map((link) => ({ link, el: document.getElementById(link.dataset.tocLink ?? '') }))
+      .filter((entry): entry is { link: HTMLAnchorElement; el: HTMLElement } => entry.el !== null);
+
+    if (entries.length === 0) return;
+
+    // 页眉高 48px，再留一点余量，让标题刚进入视线就切换
+    const OFFSET = 96;
+
+    const sync = () => {
+      let current = entries[0];
+
+      for (const entry of entries) {
+        if (entry.el.getBoundingClientRect().top <= OFFSET) current = entry;
+        else break;
+      }
+
+      // 滚到页面底部时，最后一段可能永远越不过基准线，这里特判一下
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 8) {
+        current = entries[entries.length - 1];
+      }
+
+      for (const entry of entries) {
+        if (entry === current) entry.link.setAttribute('aria-current', 'location');
+        else entry.link.removeAttribute('aria-current');
+      }
+    };
+
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        sync();
+        ticking = false;
+      });
+    };
+
+    sync();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+  })();
+</script>
+
+<style>
+  .toc {
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+  }
+
+  /* 左侧导轨：目录的「轨道」 */
+  .toc-list {
+    position: relative;
+    padding-left: 14px;
+  }
+
+  .toc-list::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 3px;
+    bottom: 3px;
+    width: 1px;
+    background-color: var(--line);
+  }
+
+  .toc-item a {
+    position: relative;
+    display: block;
+    padding-block: 4px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--ink-muted);
+    transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 每级标题左侧的小标记。锚定在导轨上，不受文本缩进影响
+     （绝对定位的 left 相对的是 padding box 左边缘，与元素自身 padding 无关）。 */
+  .toc-item a::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    width: 6px;
+    height: 1.5px;
+    transform: translateY(-50%);
+    border-radius: 1px;
+    background-color: var(--line);
+    transition:
+      width 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 三级标题：标记更短、文本缩进，形成层级差 */
+  .toc-item--h3 a {
+    padding-left: 10px;
+  }
+
+  .toc-item--h3 a::before {
+    width: 3px;
+  }
+
+  .toc-item a:hover {
+    color: var(--ink);
+  }
+
+  /* 当前位置：标记变长并染色 */
+  .toc-item a[aria-current] {
+    color: var(--ink);
+  }
+
+  .toc-item a[aria-current]::before {
+    width: 11px;
+    background-color: var(--accent);
+  }
+</style>

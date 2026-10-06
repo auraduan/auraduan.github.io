@@ -1,0 +1,150 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { SITE } from '../site.config';
+
+interface Props {
+  /** 页面标题（不含站点名，会自动拼接） */
+  title?: string;
+  description?: string;
+  /** 社交分享图，绝对路径或完整 URL */
+  image?: string;
+  /** 宽版布局：不加顶部导航留白，供首页全屏首屏使用 */
+  wide?: boolean;
+  /** 首屏是整屏壁纸：页眉初始透明，滚动后恢复常规样式 */
+  overHero?: boolean;
+}
+
+const {
+  title,
+  description = SITE.description,
+  image,
+  wide = false,
+  overHero = false,
+} = Astro.props;
+
+const pageTitle = title ? `${title} · ${SITE.title}` : `${SITE.title} · ${SITE.subtitle}`;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const ogImage = image ? new URL(image, Astro.site).href : undefined;
+---
+
+<!doctype html>
+<html lang={SITE.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE.title} />
+    <meta property="og:locale" content={SITE.locale} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="generator" content={Astro.generator} />
+
+    {/*
+      主题初始化必须内联在 <head> 中、早于渲染执行，否则刷新会闪白。
+      见 docs/需求方案.md §10 坑位 4。
+      Expressive Code 的代码主题由 .light / .dark 类驱动，两个类都要打。
+    */}
+    <script is:inline>
+      (() => {
+        try {
+          const stored = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const theme =
+            stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+          document.documentElement.classList.add(theme);
+        } catch (e) {
+          document.documentElement.classList.add('light');
+        }
+      })();
+    </script>
+
+    <!-- JS 不可用时的兜底：入场动效的初始隐藏态必须被撤销，否则内容不可见 -->
+    <noscript>
+      <style>
+        [data-reveal] {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      </style>
+    </noscript>
+
+    {/*
+      页面级附加样式插槽。目前用于按需引入 KaTeX——
+      它必须在 <head> 里（渲染阻塞资源），放在 body 会导致首屏先用无样式
+      状态绘制，此时公式的 MathML 与 HTML 两套输出会同时可见。
+    */}
+    <slot name="head" />
+  </head>
+
+  <body class="flex min-h-screen flex-col">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:text-small"
+    >
+      跳到正文
+    </a>
+
+    <Nav overHero={overHero} />
+
+    <main id="main" class={wide ? 'flex-1' : 'flex-1 pt-12'}>
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>
+
+<script>
+  // 滚动入场动效：只播一次，回滚不重播（需求方案 §6.8）
+  const revealables = document.querySelectorAll('[data-reveal]');
+
+  if (revealables.length > 0 && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px' }
+    );
+
+    revealables.forEach((el) => observer.observe(el));
+  } else {
+    // 不支持 IntersectionObserver 时直接呈现终态，不留白屏
+    revealables.forEach((el) => el.classList.add('is-revealed'));
+  }
+</script>
+
+<style is:global>
+  /* 入场动效基态。全局的 prefers-reduced-motion 规则会把时长压到 0.01ms，
+     因此开启「减少动效」时元素直接呈现终态，不会留下不可见的内容。
+     必须用 is:global —— 这些元素散落在各个子页面里。 */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 600ms cubic-bezier(0.4, 0, 0.2, 1),
+      transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+</style>

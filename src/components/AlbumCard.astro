@@ -1,0 +1,117 @@
+---
+import { Image } from 'astro:assets';
+import type { Album } from '../lib/content';
+
+interface Props {
+  album: Album;
+}
+
+const { album } = Astro.props;
+const { data, id } = album;
+---
+
+<a
+  href={`/albums/${id}`}
+  class="album-card group block focus-visible:outline-none"
+  data-moods={data.mood.join('|')}
+>
+  <div class="album-lift relative aspect-square w-full">
+    <div class="album-flipper">
+      <!-- 正面：封面 -->
+      <div class="album-face album-front overflow-hidden rounded-card-sm">
+        <Image
+          src={data.cover}
+          alt={`${data.title} 封面`}
+          widths={[300, 600]}
+          sizes="(max-width: 640px) 45vw, 220px"
+          class="h-full w-full object-cover"
+          loading="lazy"
+        />
+      </div>
+
+      <!-- 背面：评分与短评。没有这一面，专辑墙就只是图片墙 -->
+      <div
+        class="album-face album-back flex flex-col justify-between rounded-card-sm p-4"
+        style="background-color: var(--surface-alt);"
+      >
+        <div>
+          <p class="text-caption text-ink-muted">{data.artist} · {data.year}</p>
+          <p class="mt-1 text-small font-semibold text-ink">{data.title}</p>
+        </div>
+
+        <div class="space-y-2">
+          {
+            data.rating !== undefined && (
+              <p class="text-small text-ink">
+                <span style="color: var(--accent);">{data.rating.toFixed(1)}</span>
+                <span class="text-caption text-ink-muted"> / 10</span>
+              </p>
+            )
+          }
+          {
+            data.mood.length > 0 && (
+              <p class="text-caption text-ink-muted">{data.mood.join(' · ')}</p>
+            )
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-2.5">
+    <p class="truncate text-small text-ink">{data.title}</p>
+    <p class="truncate text-caption text-ink-muted">{data.artist}</p>
+  </div>
+</a>
+
+<style>
+  /* 黑胶唱片墙：hover 时整张抬起 + 翻转看背面 */
+  .album-lift {
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .album-card:hover .album-lift,
+  .album-card:focus-visible .album-lift {
+    transform: translateY(-4px);
+  }
+
+  .album-flipper {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    transform-style: preserve-3d;
+    transition: transform 520ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .album-card:hover .album-flipper,
+  .album-card:focus-visible .album-flipper {
+    transform: rotateY(180deg);
+  }
+
+  .album-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .album-back {
+    transform: rotateY(180deg);
+  }
+
+  /* 触屏与「减少动效」下不翻转：信息在专辑详情页里完整可得 */
+  @media (prefers-reduced-motion: reduce), (hover: none) {
+    .album-flipper,
+    .album-card:hover .album-flipper,
+    .album-card:focus-visible .album-flipper {
+      transform: none !important;
+    }
+    .album-back {
+      display: none;
+    }
+    .album-card:hover .album-lift,
+    .album-card:focus-visible .album-lift {
+      transform: none !important;
+    }
+  }
+</style>
