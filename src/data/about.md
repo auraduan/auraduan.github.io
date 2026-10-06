@@ -19,11 +19,6 @@ title: 关于我
 - **编程** — Python 为主，正在往工程化的方向补
 - **音乐** — 有一面[专辑墙](/albums)，听得很杂
 
-## 联系
-
-- GitHub：[@auraduan](https://github.com)
-- 邮件：待填
-
 ## 关于这个站
 
 用 [Astro](https://astro.build) 搭的静态站，没有后端、没有数据库、没有评论功能。文章是纯 Markdown，推上去就发布。

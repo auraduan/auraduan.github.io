@@ -103,9 +103,30 @@ export const LINK_GROUPS: LinkGroup[] = [
 
 /** 页脚社交/联系入口。href 留空则该项不渲染。 */
 export const SOCIAL: { label: string; href: string }[] = [
-  { label: 'GitHub', href: 'https://github.com' },
+  { label: 'GitHub', href: 'https://github.com/auraduan' },
   { label: 'RSS', href: '/rss.xml' },
   // { label: '邮箱', href: 'mailto:you@example.com' },
+];
+
+/**
+ * 「关于」页顶部的个人主页按钮。改动链接/文案/顺序只动这里。
+ *
+ * `icon` 对应 about.astro 里内置的矢量图标（github / xiaohongshu / instagram）；
+ * 加新平台时两边都要加一条，漏了会渲染成没有图标的空按钮。
+ * 平台主页一律用**不带追踪参数的干净地址**（分享链接里那些 xsec_token / stkn 会过期）。
+ */
+export const PROFILES: {
+  label: string;
+  href: string;
+  icon: 'github' | 'xiaohongshu' | 'instagram';
+}[] = [
+  { label: 'GitHub', href: 'https://github.com/auraduan', icon: 'github' },
+  {
+    label: '小红书',
+    href: 'https://www.xiaohongshu.com/user/profile/68a3d4ba000000001902326a',
+    icon: 'xiaohongshu',
+  },
+  { label: 'Instagram', href: 'https://www.instagram.com/linson_duan', icon: 'instagram' },
 ];
 
 /**
