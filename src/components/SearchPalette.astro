@@ -1,0 +1,572 @@
+---
+/**
+ * 命令面板（站内搜索）—— 需求方案 §7「已确认排期」第 1 项。
+ *
+ * 索引由 Pagefind 在构建后生成（`pagefind --site dist`），运行时零后端。
+ * 入口有三个：页眉搜索按钮（data-search-open）、Ctrl/⌘+K、以及本组件的
+ * 面板自身。dev 模式下 /pagefind/ 不存在，加载失败走降级提示（坑位 12）。
+ */
+import { NAV, SITE } from '../site.config';
+
+const shortcuts = [
+  { label: '首页', href: '/' },
+  ...NAV.map((item) => ({ label: item.label, href: item.href })),
+];
+---
+
+<div class="search-overlay" data-search-overlay hidden>
+  <div class="search-backdrop" data-search-backdrop></div>
+
+  <div
+    class="search-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="站内搜索"
+    data-search-panel
+  >
+    <div class="search-input-row">
+      <svg
+        class="search-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="m20 20-3.5-3.5"></path>
+      </svg>
+      <input
+        type="text"
+        inputmode="search"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="搜索文章、专辑、页面…"
+        aria-label="搜索关键词"
+        role="combobox"
+        aria-expanded="false"
+        aria-controls="search-results"
+        data-search-input
+      />
+      <button type="button" class="search-esc" data-search-close aria-label="关闭搜索">Esc</button>
+    </div>
+
+    <!-- 搜索结果（有命中时显示） -->
+    <div class="search-results" id="search-results" role="listbox" data-search-results hidden>
+    </div>
+
+    <!-- 空态 / 降级态：提示语 + 快速跳转入口，两态复用同一块 -->
+    <div class="search-idle" data-search-idle>
+      <p class="search-idle-hint" data-search-idle-hint>输入关键词，搜索全站文章与专辑。</p>
+      <div class="search-group-label">快速跳转</div>
+      {
+        shortcuts.map((item) => (
+          <a href={item.href} class="search-row" role="option" aria-selected="false">
+            <span class="search-row-title">{item.label}</span>
+            <span class="search-row-meta">{item.href}</span>
+          </a>
+        ))
+      }
+    </div>
+
+    <div class="search-footer" aria-hidden="true">
+      <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+      <span><kbd>Enter</kbd> 打开</span>
+      <span><kbd>Esc</kbd> 关闭</span>
+      <span class="search-footer-key"><kbd>Ctrl</kbd><kbd>K</kbd> 唤起</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* 遮罩：Apple Spotlight 式——背景虚化，面板居中压顶 */
+  .search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 80; /* 盖住页眉（z-50） */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: max(10vh, 72px) 16px 16px;
+  }
+
+  .search-overlay[hidden] {
+    display: none;
+  }
+
+  .search-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    opacity: 0;
+    transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .search-overlay.is-open .search-backdrop {
+    opacity: 1;
+  }
+
+  .search-panel {
+    position: relative;
+    width: min(640px, 100%);
+    max-height: min(70vh, 560px);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.28),
+      0 0 0 0.5px var(--line);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(-12px);
+    transition:
+      opacity 220ms cubic-bezier(0.4, 0, 0.2, 1),
+      transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .search-overlay.is-open .search-panel {
+    opacity: 1;
+    transform: none;
+  }
+
+  .search-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  .search-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--ink-muted);
+  }
+
+  .search-input-row input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: var(--text-body);
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  .search-input-row input::placeholder {
+    color: var(--ink-muted);
+  }
+
+  /* WebKit 的 input[type=search] 清除按钮在 type=text 下不存在，无需处理 */
+  .search-esc {
+    font-family: inherit;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--ink-muted);
+    background: var(--surface-alt);
+    border: 0.5px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 7px;
+    cursor: pointer;
+  }
+
+  .search-results,
+  .search-idle {
+    overflow-y: auto;
+    overscroll-contain;
+    padding: 8px;
+    min-height: 0;
+  }
+
+  .search-results[hidden] {
+    display: none;
+  }
+
+  .search-idle-hint {
+    padding: 12px 12px 4px;
+    font-size: var(--text-caption);
+    line-height: 1.4;
+    color: var(--ink-muted);
+  }
+
+  .search-group-label {
+    padding: 12px 12px 4px;
+    font-size: var(--text-caption);
+    line-height: 1.4;
+    font-weight: 600;
+    color: var(--ink-muted);
+  }
+
+  .search-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .search-row:hover,
+  .search-row.is-active {
+    background: var(--surface-alt);
+  }
+
+  .search-row-title {
+    font-size: var(--text-small);
+    line-height: 1.5;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .search-row-meta {
+    font-size: var(--text-caption);
+    line-height: 1.4;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 摘要：单行截断，命中词用 accent 高亮（不抢底色，保持扁平） */
+  .search-row-excerpt {
+    font-size: var(--text-caption);
+    line-height: 1.5;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .search-results :global(mark) {
+    background: none;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .search-empty {
+    padding: 20px 12px;
+    font-size: var(--text-small);
+    color: var(--ink-muted);
+    text-align: center;
+  }
+
+  .search-footer {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px;
+    border-top: 0.5px solid var(--line);
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--ink-muted);
+  }
+
+  @media (min-width: 768px) {
+    .search-footer {
+      display: flex;
+    }
+  }
+
+  .search-footer kbd {
+    font-family: inherit;
+    font-size: 10px;
+    background: var(--surface-alt);
+    border: 0.5px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 5px;
+    margin-right: 3px;
+  }
+</style>
+
+<script>
+  // 命令面板逻辑。Astro 的 <script> 是模块脚本（defer），DOM 已就绪。
+  // 与其它组件解耦的方式：页眉按钮挂 data-search-open，这里统一绑定。
+
+  type PagefindResult = {
+    url: string;
+    excerpt: string;
+    meta: { title?: string; [k: string]: string | undefined };
+  };
+
+  type PagefindModule = {
+    init?: () => Promise<void>;
+    search: (q: string) => Promise<{ results: { data: () => Promise<PagefindResult> }[] }>;
+  };
+
+  const overlay = document.querySelector<HTMLElement>('[data-search-overlay]');
+  const panel = overlay?.querySelector<HTMLElement>('[data-search-panel]');
+  const input = overlay?.querySelector<HTMLInputElement>('[data-search-input]');
+  const resultsEl = overlay?.querySelector<HTMLElement>('[data-search-results]');
+  const idleEl = overlay?.querySelector<HTMLElement>('[data-search-idle]');
+  const idleHint = overlay?.querySelector<HTMLElement>('[data-search-idle-hint]');
+  const backdrop = overlay?.querySelector<HTMLElement>('[data-search-backdrop]');
+
+  if (overlay && panel && input && resultsEl && idleEl && idleHint && backdrop) {
+    const IDLE_HINT = '输入关键词，搜索全站文章与专辑。';
+    const NO_INDEX_HINT =
+      '搜索索引尚未生成——本地开发模式没有索引，运行 npm run build && npm run preview 后可用。';
+
+    let pagefind: PagefindModule | null | undefined; // undefined=未加载, null=加载失败
+    let rows: HTMLElement[] = [];
+    let activeIndex = -1;
+    let seq = 0; // 竞态防护：过期的异步响应直接丢弃
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
+    let lastTrigger: HTMLElement | null = null;
+    let prevOverflow = '';
+
+    const isOpen = () => !overlay.hasAttribute('hidden');
+
+    /** 按 URL 前缀分组。与 §7「结果按类型分组」对应。 */
+    const groupOf = (url: string) => {
+      if (url.startsWith('/posts/')) return '文章';
+      if (url.startsWith('/albums/')) return '专辑';
+      return '页面';
+    };
+
+    async function ensurePagefind(): Promise<PagefindModule | null> {
+      if (pagefind !== undefined) return pagefind;
+      // dev 下 Vite 会把动态 import 拦进自己的管线并给 public 文件加 ?import
+      // → 必定 500（坑位 12 的 dev 面）。直接降级，省得控制台留红错。
+      if (import.meta.env.DEV) {
+        pagefind = null;
+        return pagefind;
+      }
+      try {
+        // 变量字面量让 Vite 跳过静态分析，构建时原样保留运行时请求。
+        const url = '/pagefind/pagefind.js';
+        const mod = (await import(/* @vite-ignore */ url)) as PagefindModule;
+        if (typeof mod.init === 'function') await mod.init();
+        pagefind = mod;
+      } catch (e) {
+        pagefind = null;
+      }
+      return pagefind;
+    }
+
+    function showIdle(hint: string) {
+      resultsEl!.hidden = true;
+      resultsEl!.innerHTML = '';
+      idleEl!.hidden = false;
+      idleHint!.textContent = hint;
+      rows = [];
+      activeIndex = -1;
+      input!.removeAttribute('aria-activedescendant');
+    }
+
+    function setActive(index: number) {
+      rows.forEach((row, i) => {
+        const active = i === index;
+        row.classList.toggle('is-active', active);
+        row.setAttribute('aria-selected', String(active));
+        if (active) {
+          row.id = 'search-row-active';
+          input!.setAttribute('aria-activedescendant', 'search-row-active');
+          row.scrollIntoView({ block: 'nearest' });
+        }
+      });
+      activeIndex = index;
+    }
+
+    function buildRow(item: PagefindResult, rowIndex: number): HTMLElement {
+      const row = document.createElement('a');
+      row.href = item.url;
+      row.className = 'search-row';
+      row.setAttribute('role', 'option');
+      row.setAttribute('aria-selected', 'false');
+
+      const title = document.createElement('span');
+      title.className = 'search-row-title';
+      title.textContent = item.meta.title || item.url;
+      row.appendChild(title);
+
+      const meta = document.createElement('span');
+      meta.className = 'search-row-meta';
+      meta.textContent = `${groupOf(item.url)} · ${item.url}`;
+      row.appendChild(meta);
+
+      if (item.excerpt) {
+        const excerpt = document.createElement('span');
+        excerpt.className = 'search-row-excerpt';
+        // excerpt 由 Pagefind 生成，内部已转义、仅用 <mark> 包命中词（官方 UI 同此做法）
+        excerpt.innerHTML = item.excerpt;
+        row.appendChild(excerpt);
+      }
+
+      // 鼠标 hover 同步高亮；点击交给 <a> 默认行为（支持中键/新标签页）
+      row.addEventListener('mouseenter', () => setActive(rowIndex));
+      return row;
+    }
+
+    async function runSearch() {
+      const my = ++seq;
+      const query = input!.value.trim();
+
+      if (!query) {
+        showIdle(IDLE_HINT);
+        return;
+      }
+
+      const pf = await ensurePagefind();
+      if (my !== seq) return;
+      if (!pf) {
+        showIdle(NO_INDEX_HINT);
+        return;
+      }
+
+      const search = await pf.search(query);
+      if (my !== seq) return;
+
+      const items = await Promise.all(search.results.slice(0, 20).map((r) => r.data()));
+      if (my !== seq) return;
+
+      resultsEl!.innerHTML = '';
+      rows = [];
+
+      if (items.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'search-empty';
+        empty.textContent = `没有找到与「${query}」相关的内容`;
+        resultsEl!.appendChild(empty);
+        resultsEl!.hidden = false;
+        idleEl!.hidden = true;
+        activeIndex = -1;
+        input!.removeAttribute('aria-activedescendant');
+        return;
+      }
+
+      // 按 文章 → 专辑 → 页面 分组，组内保持 Pagefind 的相关性排序
+      const order = ['文章', '专辑', '页面'];
+      const grouped = new Map<string, PagefindResult[]>();
+      for (const item of items) {
+        const g = groupOf(item.url);
+        if (!grouped.has(g)) grouped.set(g, []);
+        grouped.get(g)!.push(item);
+      }
+
+      for (const group of order) {
+        const list = grouped.get(group);
+        if (!list || list.length === 0) continue;
+
+        const label = document.createElement('div');
+        label.className = 'search-group-label';
+        label.textContent = group;
+        resultsEl!.appendChild(label);
+
+        for (const item of list) {
+          const row = buildRow(item, rows.length);
+          resultsEl!.appendChild(row);
+          rows.push(row);
+        }
+      }
+
+      resultsEl!.hidden = false;
+      idleEl!.hidden = true;
+      setActive(0);
+    }
+
+    function open(trigger?: HTMLElement) {
+      if (isOpen()) return;
+      lastTrigger = trigger || document.activeElement;
+      if (closeTimer) clearTimeout(closeTimer);
+      overlay!.hidden = false;
+      // 下一帧加类，保证过渡能播（hidden→display:flex 同帧不触发 transition）
+      requestAnimationFrame(() => overlay!.classList.add('is-open'));
+      input!.setAttribute('aria-expanded', 'true');
+      prevOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = 'hidden'; // 锁底页滚动
+      input!.focus();
+      input!.select();
+    }
+
+    function close() {
+      if (!isOpen()) return;
+      overlay!.classList.remove('is-open');
+      input!.setAttribute('aria-expanded', 'false');
+      document.documentElement.style.overflow = prevOverflow;
+      // 等收场动画播完再隐藏；reduced-motion 下时长被压到 0.01ms，这里只是兜底
+      closeTimer = setTimeout(() => {
+        overlay!.hidden = true;
+        resultsEl!.hidden = true;
+        resultsEl!.innerHTML = '';
+        rows = [];
+        activeIndex = -1;
+        input!.value = '';
+      }, 200);
+      const trigger = lastTrigger;
+      if (trigger && 'focus' in trigger) trigger.focus();
+    }
+
+    // —— 入口绑定 ——
+    for (const btn of document.querySelectorAll<HTMLElement>('[data-search-open]')) {
+      btn.addEventListener('click', () => open(btn));
+    }
+    backdrop.addEventListener('click', close);
+    for (const el of overlay.querySelectorAll<HTMLElement>('[data-search-close]')) {
+      el.addEventListener('click', close);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key;
+      if ((e.ctrlKey || e.metaKey) && (key === 'k' || key === 'K')) {
+        e.preventDefault();
+        isOpen() ? close() : open();
+        return;
+      }
+      if (key === 'Escape' && isOpen()) {
+        e.preventDefault();
+        close();
+      }
+    });
+
+    input.addEventListener('input', () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(runSearch, 150);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (rows.length > 0) setActive((activeIndex + 1) % rows.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (rows.length > 0) setActive((activeIndex - 1 + rows.length) % rows.length);
+      } else if (e.key === 'Enter') {
+        if (activeIndex >= 0 && rows[activeIndex]) {
+          e.preventDefault();
+          window.location.href = rows[activeIndex].getAttribute('href') || '';
+        }
+      }
+    });
+
+    // 极简焦点陷阱：Tab 只在面板内循环
+    panel.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+  }
+</script>

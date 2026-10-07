@@ -27,14 +27,44 @@ const linked = posts.filter((post) => post.data.album === album.id);
   <article class="mx-auto max-w-[980px] px-6 pb-24 pt-20 md:pt-24">
     <div class="flex flex-col gap-10 sm:flex-row sm:gap-12">
       <div class="w-full shrink-0 sm:w-[320px]" data-reveal>
-        <Image
-          src={data.cover}
-          alt={`${data.title} 封面`}
-          widths={[320, 640]}
-          sizes="(max-width: 640px) 100vw, 320px"
-          class="w-full rounded-card object-cover"
-          loading="eager"
-        />
+        <!--
+          唱片机：点封面让黑胶转起来（§7「已确认排期」第 3 项）。
+          防溢出约束（v1.15）：sm+ 右下伸出量 36px < 左右栏 gap 48px，不碰文字栏；
+          窄屏是 stack 布局，黑胶改为叠在封面**之上**原地旋转——
+          向外伸出会超出 px-6 的 24px 内边距，把页面撑出横向溢出。
+        -->
+        <button
+          type="button"
+          data-vinyl-toggle
+          aria-pressed="false"
+          aria-label="让黑胶转起来"
+          class="album-turntable relative block w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+        >
+          <Image
+            src={data.cover}
+            alt={`${data.title} 封面`}
+            widths={[320, 640]}
+            sizes="(max-width: 640px) 100vw, 320px"
+            class="relative z-10 w-full rounded-card object-cover"
+            loading="eager"
+          />
+
+          <span class="vinyl" aria-hidden="true">
+            <span class="vinyl-disc">
+              <Image
+                src={data.cover}
+                alt=""
+                widths={[140]}
+                sizes="140px"
+                class="vinyl-label"
+                loading="lazy"
+              />
+              <span class="vinyl-hole"></span>
+            </span>
+          </span>
+        </button>
+
+        <p class="mt-3 text-caption text-ink-muted">点一下封面，黑胶转起来</p>
       </div>
 
       <div class="min-w-0 flex-1">
@@ -118,3 +148,101 @@ const linked = posts.filter((post) => post.data.album === album.id);
     </div>
   </article>
 </BaseLayout>
+
+<script>
+  // 唱片机开关：class 切在按钮上，样式与动效全在下方 <style> 里
+  const turntable = document.querySelector<HTMLElement>('[data-vinyl-toggle]');
+  turntable?.addEventListener('click', () => {
+    const playing = turntable.classList.toggle('is-playing');
+    turntable.setAttribute('aria-pressed', String(playing));
+    turntable.setAttribute('aria-label', playing ? '把黑胶收回封套' : '让黑胶转起来');
+  });
+</script>
+
+<style>
+  /* 黑胶圆盘：藏在封面正后方，右缘与容器对齐（宽度 92% < 100%，完全被封面盖住） */
+  .vinyl {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 92%;
+    aspect-ratio: 1;
+    transform: translate(0, -50%);
+    transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0; /* 低于封面（z-10）：sm+ 只露出右侧月牙 */
+    pointer-events: none; /* 点击一律交给外层 button */
+  }
+
+  /* sm+：向右下滑出 36px —— 小于左右栏 48px 的 gap，不侵入文字栏（v1.15 防溢出约束） */
+  .album-turntable.is-playing .vinyl {
+    transform: translate(36px, calc(-50% + 36px));
+  }
+
+  /* 窄屏（<640px）stack 布局：伸出容器会溢出视口，改为叠在封面之上居中旋转 */
+  @media (max-width: 639px) {
+    .vinyl {
+      z-index: 20;
+      right: auto;
+      left: 50%;
+      width: 78%;
+      transform: translate(-50%, -50%);
+    }
+
+    .album-turntable.is-playing .vinyl {
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  /* 纯 CSS 黑胶：同心纹路 + 斜向反光 + 中心封面标签 */
+  .vinyl-disc {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background:
+      linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.05) 50%, transparent 58%),
+      repeating-radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 255, 255, 0.035) 0 1px,
+        transparent 1px 4px
+      ),
+      radial-gradient(circle at 50% 50%, #17171b 0 34%, #0a0a0c 34% 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+      0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .album-turntable.is-playing .vinyl-disc {
+    animation: vinyl-spin 1.8s linear infinite;
+  }
+
+  @keyframes vinyl-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* 中心标签：专辑封面缩略图裁成圆 */
+  .vinyl-label {
+    width: 38%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  /* 轴孔：透出页面背景色 */
+  .vinyl-hole {
+    position: absolute;
+    width: 5%;
+    min-width: 6px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--surface);
+  }
+
+  /* prefers-reduced-motion 由 global.css 的全局规则接管：时长压到 0.01ms，
+     黑胶不会持续旋转，只会瞬间到达目标状态 */
+</style>

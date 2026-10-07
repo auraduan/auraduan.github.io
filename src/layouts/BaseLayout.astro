@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import SearchPalette from '../components/SearchPalette.astro';
 import { SITE } from '../site.config';
 
 interface Props {
@@ -104,6 +105,9 @@ const ogImage = image ? new URL(image, Astro.site).href : undefined;
     </main>
 
     <Footer />
+
+    <!-- 命令面板（站内搜索）：入口在页眉按钮与 Ctrl/⌘+K -->
+    <SearchPalette />
   </body>
 </html>
 

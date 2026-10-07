@@ -6,6 +6,7 @@ import katexStyles from 'katex/dist/katex.min.css?url';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toc from '../../components/Toc.astro';
 import {
+  adjacentPosts,
   formatDate,
   formatDateCN,
   getPublishedPosts,
@@ -31,6 +32,9 @@ const { Content, headings } = await render(post);
 
 const all = await getPublishedPosts();
 const related = relatedPosts(post, all);
+
+// 相邻文章：按时间轴取前后各一篇。prev = 更早的一篇，next = 更新的一篇
+const { prev, next } = adjacentPosts(post, all);
 
 // 目录只收二、三级标题
 const toc = data.toc ? headings.filter((h) => h.depth === 2 || h.depth === 3) : [];
@@ -64,7 +68,11 @@ const ogImage = data.cover
   <article class="mx-auto max-w-[980px] px-6 pb-16 pt-20 md:pt-24">
     <header class="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-10">
       <div class="min-w-0 flex-1" style="max-width: 680px;">
-        <p class="text-caption uppercase tracking-widest text-ink-muted">{data.category}</p>
+        <p class="text-caption uppercase tracking-widest text-ink-muted">
+          <a href={`/category/${data.category}`} class="tap-area transition-colors hover:text-ink">
+            {data.category}
+          </a>
+        </p>
         <h1 class="mt-3 text-h1 text-ink">{data.title}</h1>
         <p class="mt-4 text-body text-ink-muted">{data.description}</p>
 
@@ -141,6 +149,44 @@ const ogImage = data.cover
         )
       }
     </div>
+
+    <!--
+      相邻文章：接着读的入口，紧贴正文。语义按时间轴——「上一篇」= 更早、「下一篇」= 更新，
+      两栏都带日期，避免歧义。构建时算好，零运行时成本。
+    -->
+    {
+      (prev || next) && (
+        <nav class="mt-16 max-w-[680px] border-t border-line pt-8" aria-label="相邻文章">
+          <div class="grid gap-6 sm:grid-cols-2">
+            {prev && (
+              <a href={`/posts/${prev.id}`} class="group block">
+                <span class="block text-caption text-ink-muted">← 上一篇</span>
+                <span class="mt-1 block text-body text-ink transition-colors group-hover:text-accent">
+                  {prev.data.title}
+                </span>
+                <span class="mt-1 block text-caption tabular-nums text-ink-muted">
+                  {formatDate(prev.data.publishedAt)}
+                </span>
+              </a>
+            )}
+            {next && (
+              <a
+                href={`/posts/${next.id}`}
+                class:list={['group block sm:text-right', !prev && 'sm:col-start-2']}
+              >
+                <span class="block text-caption text-ink-muted">下一篇 →</span>
+                <span class="mt-1 block text-body text-ink transition-colors group-hover:text-accent">
+                  {next.data.title}
+                </span>
+                <span class="mt-1 block text-caption tabular-nums text-ink-muted">
+                  {formatDate(next.data.publishedAt)}
+                </span>
+              </a>
+            )}
+          </div>
+        </nav>
+      )
+    }
 
     {
       related.length > 0 && (

@@ -89,6 +89,32 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
     </ul>
 
     <div class="flex items-center gap-3">
+      <!--
+        搜索入口：命令面板的按钮端。桌面 Ctrl/⌘+K 可直接唤起（绑定在
+        SearchPalette 里），移动端没有键盘，这个图标就是唯一入口。
+        颜色走 .nav-toggle 规则，首页透明态下自动翻白。
+      -->
+      <button
+        type="button"
+        data-search-open
+        aria-label="搜索"
+        title="搜索（Ctrl + K）"
+        class="nav-toggle flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-surface-alt"
+      >
+        <svg
+          class="block h-4 w-4"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-3.5-3.5"></path>
+        </svg>
+      </button>
+
       <ThemeToggle />
 
       <!-- 移动端菜单：零 JS，用原生 details。

@@ -23,23 +23,27 @@ const years = groupByYear(posts);
 
               <ul class="mt-6 border-t border-line">
                 {items.map((post) => (
-                  <li class="border-b border-line">
+                  <li class="group relative flex flex-col gap-1 border-b border-line py-4 sm:flex-row sm:items-baseline sm:gap-6">
+                    <time
+                      datetime={post.data.publishedAt.toISOString()}
+                      class="shrink-0 text-caption tabular-nums text-ink-muted sm:w-[92px]"
+                    >
+                      {formatDate(post.data.publishedAt).slice(5)}
+                    </time>
+                    <!-- 标题是主链接并拉伸覆盖整行，保持「整行可点」的原有手感 -->
                     <a
                       href={`/posts/${post.id}`}
-                      class="group flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-6"
+                      class="stretch-link text-body text-ink transition-colors group-hover:text-accent"
                     >
-                      <time
-                        datetime={post.data.publishedAt.toISOString()}
-                        class="shrink-0 text-caption tabular-nums text-ink-muted sm:w-[92px]"
-                      >
-                        {formatDate(post.data.publishedAt).slice(5)}
-                      </time>
-                      <span class="text-body text-ink transition-colors group-hover:text-accent">
-                        {post.data.title}
-                      </span>
-                      <span class="text-caption text-ink-muted sm:ml-auto sm:shrink-0">
-                        {post.data.category}
-                      </span>
+                      {post.data.title}
+                    </a>
+                    <!-- 分类浮在拉伸层之上，可单独点进分类页；py-1 撑起 26px 高的热区，
+                         行内元素不参与行盒计算，视觉零变化 -->
+                    <a
+                      href={`/category/${post.data.category}`}
+                      class="stretch-above py-1 text-caption text-ink-muted transition-colors hover:text-ink sm:ml-auto sm:shrink-0"
+                    >
+                      {post.data.category}
                     </a>
                   </li>
                 ))}

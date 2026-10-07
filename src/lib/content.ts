@@ -99,6 +99,22 @@ export function relatedPosts(current: Post, all: Post[], limit = 3): Post[] {
     .map((x) => x.post);
 }
 
+/**
+ * 相邻文章：按传入顺序（发布时间倒序）取前后各一篇。
+ *
+ * 返回值语义（时间轴视角，不是数组下标视角）：
+ *   prev = 时间上**更早**的一篇（数组中排在后面）
+ *   next = 时间上**更新**的一篇（数组中排在前面）
+ *
+ * 首篇的 next 为 undefined、末篇的 prev 为 undefined，调用方需自行兜底。
+ * 与 relatedPosts 一样在构建时算好，零运行时成本。
+ */
+export function adjacentPosts(current: Post, all: Post[]): { prev?: Post; next?: Post } {
+  const index = all.findIndex((p) => p.id === current.id);
+  if (index === -1) return {};
+  return { next: all[index - 1], prev: all[index + 1] };
+}
+
 /** 封面比例选项 */
 export type CoverAspect = 'auto' | '16:9' | '3:2' | '4:3' | '1:1';
 

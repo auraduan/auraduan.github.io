@@ -19,9 +19,8 @@ const href = `/posts/${id}`;
 const aspect = resolveAspect(data.coverAspect, data.cover);
 ---
 
-<a
-  href={href}
-  class:list={['post-card group block', isRow ? 'post-card--row' : 'post-card--column']}
+<article
+  class:list={['post-card group relative', isRow ? 'post-card--row' : 'post-card--column']}
 >
   <!--
     封面在 DOM 里排在文字之前：移动端天然显示在上方；
@@ -51,17 +50,29 @@ const aspect = resolveAspect(data.coverAspect, data.cover);
   }
 
   <div class:list={['post-body min-w-0 flex-1', isRow && 'order-2 sm:order-1']}>
-    <h3 class="text-h3 text-ink transition-colors group-hover:text-accent">{data.title}</h3>
+    <h3 class="text-h3 text-ink">
+      <!-- 标题是主链接，::after 拉伸后整卡可点 -->
+      <a href={href} class="stretch-link transition-colors group-hover:text-accent">{data.title}</a>
+    </h3>
     <p class="mt-2 line-clamp-2 text-small leading-relaxed text-ink-muted">{data.description}</p>
     <div class="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption text-ink-muted">
       <time datetime={data.publishedAt.toISOString()}>{formatDate(data.publishedAt)}</time>
       <span aria-hidden="true">·</span>
-      <span>{data.category}</span>
+      <!-- 分类浮在拉伸层之上：卡片可点，分类也能单独点进分类页。
+           负边距抵消 padding —— 热区 18→30px 高，视觉位置一动没动。 -->
+      {data.category && (
+        <a
+          href={`/category/${data.category}`}
+          class="stretch-above -mx-1.5 px-1.5 py-1 transition-colors hover:text-ink"
+        >
+          {data.category}
+        </a>
+      )}
       <span aria-hidden="true">·</span>
       <span>约 {readingTime(body)} 分钟</span>
     </div>
   </div>
-</a>
+</article>
 
 <style>
   /* 卡片一律靠底色区分层次，不描边框（需求方案 §6.9） */

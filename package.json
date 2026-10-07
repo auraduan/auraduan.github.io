@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "pagefind": "^1.5.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.0.0"
   }

@@ -110,6 +110,40 @@ summary:active,
   inset: -0.5rem 0; /* 上下各 8px：15px 的页脚链接 → 31px */
 }
 
+/**
+ * 整块可点的「拉伸链接」——主链接是 <a>，::after 撑满父块接管点击。
+ *
+ * 为什么需要它：文章卡片既要**整块可点**，内部又要有**独立的分类链接**。
+ * 若把整卡写成 <a> 再往里嵌分类 <a>，就是**嵌套链接**——HTML 规范不允许，
+ * 浏览器会把 DOM 拆开，布局会莫名其妙地崩掉。
+ *
+ * 用法：父元素加 position: relative（Tailwind 的 relative），主链接挂 .stretch-link，
+ * 内部其他链接挂 .stretch-above 浮到覆盖层之上（z-index 高于 ::after 即可）。
+ */
+.stretch-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.stretch-above {
+  position: relative;
+  z-index: 1;
+}
+
+/**
+ * 筛选按钮 —— 专辑墙的心情筛选与文章列表的分类筛选共用。
+ *
+ * 常态样式由元素上的 Tailwind 类承担（border / padding / 文字色），
+ * 这里只定义按下态：**墨色实心**。全站两种状态语义分工：
+ * accent 蓝 =「可点 / 当前所在页」，实心墨色 =「正在筛选」。
+ */
+.filter-btn[aria-pressed='true'] {
+  background-color: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+
 /* 浅色 —— §6.2 */
 :root {
   --surface: #ffffff;

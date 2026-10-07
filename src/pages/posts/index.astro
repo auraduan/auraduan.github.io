@@ -2,20 +2,79 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PageHeader from '../../components/PageHeader.astro';
 import PostCard from '../../components/PostCard.astro';
-import { getPublishedPosts } from '../../lib/content';
+import { collectCategories, getPublishedPosts } from '../../lib/content';
 
 const posts = await getPublishedPosts();
+
+// 分类筛选的选项，从数据里自动汇总——与专辑墙的心情筛选同一套做法：
+// 纯前端按 data-* 过滤，零后端、零依赖，产物里也不含索引文件。
+const categories = collectCategories(posts);
 ---
 
 <BaseLayout title="文章" description="全部文章">
   <PageHeader title="文章" description={`共 ${posts.length} 篇。`} />
 
   <div class="mx-auto max-w-[980px] px-6 pb-24">
+    <!-- 工具行：左边分类筛选（纯前端过滤），右边「随便逛逛」随机跳转 -->
+    <div class="mb-10 flex flex-wrap items-center justify-between gap-2" data-reveal>
+      {
+        categories.length > 1 && (
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              data-cat-filter=""
+              aria-pressed="true"
+              class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink transition-colors"
+            >
+              全部
+            </button>
+            {categories.map(({ category, count }) => (
+              <button
+                type="button"
+                data-cat-filter={category}
+                aria-pressed="false"
+                class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink-muted transition-colors"
+              >
+                {category}
+                <span class="ml-1.5 tabular-nums">{count}</span>
+              </button>
+            ))}
+          </div>
+        )
+      }
+
+      <!-- 随机文章。accent 蓝 = 可点（全站状态语义），与筛选按钮（墨色 = 正在筛选）区分 -->
+      <button
+        type="button"
+        data-random-post
+        data-random-urls={JSON.stringify(posts.map((p) => `/posts/${p.id}`))}
+        class="group inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-1.5 text-caption text-accent transition-colors hover:border-accent"
+      >
+        <svg
+          class="h-3.5 w-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M16 3h5v5"></path>
+          <path d="M4 20 21 3"></path>
+          <path d="M21 16v5h-5"></path>
+          <path d="m15 15 6 6"></path>
+          <path d="m4 4 5 5"></path>
+        </svg>
+        随便逛逛
+      </button>
+    </div>
+
     {
       posts.length > 0 ? (
-        <div class="space-y-5">
+        <div class="flex flex-col gap-5">
           {posts.map((post) => (
-            <div data-reveal>
+            <div data-reveal data-post-item data-cat={post.data.category}>
               <PostCard post={post} variant="row" />
             </div>
           ))}
@@ -24,5 +83,46 @@ const posts = await getPublishedPosts();
         <p class="text-small text-ink-muted">还没有文章。</p>
       )
     }
+
+    <p data-post-empty hidden class="mt-8 text-small text-ink-muted">这个分类下还没有文章。</p>
   </div>
 </BaseLayout>
+
+<script is:inline>
+  (() => {
+    const buttons = document.querySelectorAll('[data-cat-filter]');
+    const items = document.querySelectorAll('[data-post-item]');
+    const empty = document.querySelector('[data-post-empty]');
+    if (buttons.length === 0) return;
+
+    for (const btn of buttons) {
+      btn.addEventListener('click', () => {
+        const selected = btn.dataset.catFilter || '';
+
+        for (const b of buttons) b.setAttribute('aria-pressed', String(b === btn));
+
+        let shown = 0;
+        for (const item of items) {
+          const show = selected === '' || item.dataset.cat === selected;
+          item.style.display = show ? '' : 'none';
+          if (show) shown++;
+        }
+
+        if (empty) empty.hidden = shown > 0;
+      });
+    }
+
+    // 「随便逛逛」：URL 列表由构建时写进 data 属性，纯前端随机，零依赖
+    const randomBtn = document.querySelector('[data-random-post]');
+    randomBtn?.addEventListener('click', () => {
+      try {
+        const urls = JSON.parse(randomBtn.getAttribute('data-random-urls') || '[]');
+        if (urls.length > 0) {
+          window.location.href = urls[Math.floor(Math.random() * urls.length)];
+        }
+      } catch (e) {
+        /* JSON 解析失败时静默，按钮无副作用 */
+      }
+    });
+  })();
+</script>

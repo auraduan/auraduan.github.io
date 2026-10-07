@@ -91,7 +91,7 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
             type="button"
             data-mood-filter=""
             aria-pressed="true"
-            class="mood-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink transition-colors"
+            class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink transition-colors"
           >
             全部
           </button>
@@ -100,7 +100,7 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
               type="button"
               data-mood-filter={mood}
               aria-pressed="false"
-              class="mood-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink-muted transition-colors"
+              class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink-muted transition-colors"
             >
               {mood}
             </button>
@@ -138,9 +138,7 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
         const selected = btn.dataset.moodFilter || '';
 
         for (const b of buttons) {
-          const on = b === btn;
-          b.setAttribute('aria-pressed', String(on));
-          b.classList.toggle('is-active', on);
+          b.setAttribute('aria-pressed', String(b === btn));
         }
 
         for (const item of items) {
@@ -153,11 +151,3 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
     }
   })();
 </script>
-
-<style>
-  .mood-btn[aria-pressed='true'] {
-    background-color: var(--ink);
-    color: var(--surface);
-    border-color: var(--ink);
-  }
-</style>
