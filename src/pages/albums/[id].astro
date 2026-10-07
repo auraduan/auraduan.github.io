@@ -28,7 +28,7 @@ const linked = posts.filter((post) => post.data.album === album.id);
     <div class="flex flex-col gap-10 sm:flex-row sm:gap-12">
       <div class="w-full shrink-0 sm:w-[320px]" data-reveal>
         <!--
-          唱片机：点封面让黑胶转起来（§7「已确认排期」第 3 项）。
+          唱片机：点封面让黑胶转起来（§7 一期第 18 项）。
           防溢出约束（v1.15）：sm+ 右下伸出量 36px < 左右栏 gap 48px，不碰文字栏；
           窄屏是 stack 布局，黑胶改为叠在封面**之上**原地旋转——
           向外伸出会超出 px-6 的 24px 内边距，把页面撑出横向溢出。
@@ -173,9 +173,9 @@ const linked = posts.filter((post) => post.data.album === album.id);
     pointer-events: none; /* 点击一律交给外层 button */
   }
 
-  /* sm+：向右下滑出 36px —— 小于左右栏 48px 的 gap，不侵入文字栏（v1.15 防溢出约束） */
+  /* sm+：向右下滑出 40px —— 仍小于左右栏 48px 的 gap，不侵入文字栏（v1.15 防溢出约束） */
   .album-turntable.is-playing .vinyl {
-    transform: translate(36px, calc(-50% + 36px));
+    transform: translate(40px, calc(-50% + 40px));
   }
 
   /* 窄屏（<640px）stack 布局：伸出容器会溢出视口，改为叠在封面之上居中旋转 */
@@ -193,7 +193,15 @@ const linked = posts.filter((post) => post.data.album === album.id);
     }
   }
 
-  /* 纯 CSS 黑胶：同心纹路 + 斜向反光 + 中心封面标签 */
+  /*
+    纯 CSS 黑胶。
+    盘面必须是「非旋转对称」的——同心纹路无论怎么转都看不出，
+    而桌面端露出的只有右侧一片月牙（中心标签被封面挡着），
+    所以转动可见性全靠 conic 的**四道彗尾亮痕**撑着：亮头 0.22 + 60° 渐隐尾，
+    每 90° 一道 —— 每 1/4 圈就有一道扫过月牙，明暗连续流动，肉眼立刻读到「在转」。
+    数量与角度是按「窄月牙 + 1.8s/圈」配的：两道太稀疏（像一闪一闪），
+    尾再短就成闪光而不是转动。整体压得很淡，只做参照不抢戏。
+  */
   .vinyl-disc {
     position: relative;
     display: grid;
@@ -202,13 +210,27 @@ const linked = posts.filter((post) => post.data.album === album.id);
     height: 100%;
     border-radius: 50%;
     background:
-      linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.05) 50%, transparent 58%),
+      conic-gradient(
+        from 0deg,
+        rgba(255, 255, 255, 0.22) 0deg 3deg,
+        rgba(255, 255, 255, 0.06) 3deg 60deg,
+        transparent 60deg 90deg,
+        rgba(255, 255, 255, 0.22) 90deg 93deg,
+        rgba(255, 255, 255, 0.06) 93deg 150deg,
+        transparent 150deg 180deg,
+        rgba(255, 255, 255, 0.22) 180deg 183deg,
+        rgba(255, 255, 255, 0.06) 183deg 240deg,
+        transparent 240deg 270deg,
+        rgba(255, 255, 255, 0.22) 270deg 273deg,
+        rgba(255, 255, 255, 0.06) 273deg 330deg,
+        transparent 330deg 360deg
+      ),
       repeating-radial-gradient(
         circle at 50% 50%,
-        rgba(255, 255, 255, 0.035) 0 1px,
-        transparent 1px 4px
+        rgba(255, 255, 255, 0.09) 0 1px,
+        transparent 1px 3.6px
       ),
-      radial-gradient(circle at 50% 50%, #17171b 0 34%, #0a0a0c 34% 100%);
+      radial-gradient(circle at 50% 50%, #1b1b20 0 34%, #0a0a0c 34% 100%);
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.07),
       0 8px 24px rgba(0, 0, 0, 0.35);

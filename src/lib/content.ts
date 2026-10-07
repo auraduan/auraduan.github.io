@@ -81,7 +81,7 @@ export function groupByYear(posts: Post[]): [string, Post[]][] {
 
 /**
  * 相关文章：按标签重叠数排序，重叠相同则取更新的。
- * 构建时算出来，零运行时成本（需求方案 §7 一期第 11 项）。
+ * 构建时算出来，零运行时成本（需求方案 §7 一期第 12 项）。
  */
 export function relatedPosts(current: Post, all: Post[], limit = 3): Post[] {
   const tags = new Set(current.data.tags);
