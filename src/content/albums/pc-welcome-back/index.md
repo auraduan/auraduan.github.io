@@ -5,7 +5,7 @@ year: 1995
 cover: "./cover.png"
 rating: 9.6
 genre: ["粤语"]
-mood: ["经典", "回忆"]
+mood: ["经典", "香港"]
 listenedAt: 2024-09-30
 pick: false
 link: ""

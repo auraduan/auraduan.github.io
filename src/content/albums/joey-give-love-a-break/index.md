@@ -5,7 +5,7 @@ year: 2004
 cover: "./cover.png"
 rating: 9.8
 genre: ["粤语"]
-mood: ["舒适", "写代码"]
+mood: ["香港", "清新"]
 listenedAt: 2025-08-14
 pick: true
 link: ""

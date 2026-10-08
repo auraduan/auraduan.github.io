@@ -5,7 +5,7 @@ year: 1989
 cover: "./cover.png"
 rating: 9.7
 genre: ["粤语"]
-mood: ["经典","神级现场","回忆"]
+mood: ["经典","现场","香港"]
 listenedAt: 2024-09-04
 pick: false
 link: ""

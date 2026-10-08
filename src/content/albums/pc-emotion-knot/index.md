@@ -5,7 +5,7 @@ year: 2003
 cover: "./cover.png"
 rating: 9.6
 genre: ["粤语"]
-mood: ["遗珠","艺术", "回忆"]
+mood: ["遗珠","舒适", "香港"]
 listenedAt: 2024-06-22
 pick: false
 link: ""

@@ -5,7 +5,7 @@ year: 2020
 cover: "./cover.png"
 rating: 9.8
 genre: ["粤语"]
-mood: ["神级现场"]
+mood: ["香港", "现场"]
 listenedAt: 2026-05-07
 pick: false
 link: ""

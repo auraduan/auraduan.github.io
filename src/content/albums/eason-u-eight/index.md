@@ -5,7 +5,7 @@ year: 2005
 cover: "./cover.png"
 rating: 9.5
 genre: ["粤语"]
-mood: ["写代码", "经典", "新时代"]
+mood: ["经典", "香港"]
 listenedAt: 2025-12-30
 pick: true
 link: ""

@@ -5,7 +5,7 @@ year: 1989
 cover: "./cover.png"
 rating: 9.9
 genre: ["粤语"]
-mood: ["深夜", "经典", "专注"]
+mood: ["深夜", "经典", "香港"]
 listenedAt: 2021-01-25
 pick: true
 link: ""

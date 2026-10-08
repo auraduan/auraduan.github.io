@@ -5,7 +5,7 @@ year: 2006
 cover: "./cover.png"
 rating: 9.7
 genre: ["粤语"]
-mood: ["经典", "深刻"]
+mood: ["深刻", "专注", "香港"]
 listenedAt: 2025-02-09
 pick: false
 link: ""

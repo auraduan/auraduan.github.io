@@ -5,7 +5,7 @@ year: 1997
 cover: "./cover.png"
 rating: 9.7
 genre: ["粤语"]
-mood: ["经典", "回忆"]
+mood: ["香港", "经典", "驾车"]
 listenedAt: 2023-08-24
 pick: false
 link: ""

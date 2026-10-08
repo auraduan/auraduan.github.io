@@ -5,7 +5,7 @@ year: 2021
 cover: "./cover.png"
 rating: 9.8
 genre: ["粤语"]
-mood: ["舒适", "清新"]
+mood: ["香港", "清新"]
 listenedAt: 2026-02-12
 pick: true
 link: ""
