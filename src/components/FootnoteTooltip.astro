@@ -1,0 +1,118 @@
+---
+/**
+ * 脚注悬停预览 —— 鼠标停在脚注标号上，浮出脚注内容，不用跳到文末再跳回来。
+ *
+ * 做法：页面初始化时把文末 footnotes 区里的内容**克隆**到引用处（默认隐藏），
+ * 再用纯 CSS 的 :hover 显示。这样悬停时零计算，也不需要每次去查 DOM。
+ *
+ * GFM 的输出结构（remark-gfm）：
+ *   引用处 <sup><a href="#user-content-fn-x" data-footnote-ref>1</a></sup>
+ *   定义处 <li id="user-content-fn-x">…<a data-footnote-backref>↩</a></li>
+ *
+ * 只在支持 hover 的设备上启用 —— 触摸屏没有悬停，点标号跳文末才是对的行为。
+ */
+---
+
+<style is:global>
+  /* 只在真有 hover 能力的设备上启用（触摸端保持原样：点标号跳文末） */
+  @media (hover: hover) {
+    /* 引用标号本身：轻微提示可悬停 */
+    .prose-article a[data-footnote-ref] {
+      transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .prose-article a[data-footnote-ref]:hover {
+      opacity: 0.7;
+    }
+
+    /* 承载浮层的 <sup> 需要成为定位基准 */
+    .prose-article sup:has(> a[data-footnote-ref]) {
+      position: relative;
+    }
+
+    .footnote-tooltip {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      z-index: 60;
+
+      width: max-content;
+      max-width: min(320px, 70vw);
+      padding: 12px 14px;
+
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      text-align: left;
+      white-space: normal;
+
+      color: var(--ink);
+      background-color: var(--surface);
+      border: 0.5px solid var(--line);
+      border-radius: var(--radius-card-sm);
+
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+        transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 悬停在标号、或移到浮层上时保持可见（浮层里的链接要能点） */
+    .prose-article a[data-footnote-ref]:hover + .footnote-tooltip,
+    .footnote-tooltip:hover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 浮层里的脚注原文样式收紧一点 */
+    .footnote-tooltip p {
+      margin: 0;
+    }
+
+    .footnote-tooltip p + p {
+      margin-top: 0.6em;
+    }
+  }
+</style>
+
+<script data-astro-rerun>
+  /**
+   * 初始化：把每个脚注的内容搬到引用处。
+   * 用 data-astro-rerun，因为视图过渡后文章正文会被整块换掉。
+   */
+  (() => {
+    // GFM 脚注区的标题默认是英文 "Footnotes"，且是 sr-only（只给屏幕阅读器读）。
+    // 顺手中文化 —— 它不影响视觉，但读屏用户会遇到。
+    const label = document.getElementById('footnote-label');
+    if (label) label.textContent = '脚注';
+
+    const refs = document.querySelectorAll('.prose-article a[data-footnote-ref]');
+    if (refs.length === 0) return;
+
+    for (const ref of refs) {
+      const href = ref.getAttribute('href');
+      if (!href || !href.startsWith('#')) continue;
+
+      const source = document.getElementById(href.slice(1));
+      if (!source) continue;
+
+      // 已经搬过了就跳过（防止重复插入）
+      if (ref.nextElementSibling?.classList.contains('footnote-tooltip')) continue;
+
+      const tooltip = document.createElement('span');
+      tooltip.className = 'footnote-tooltip';
+      tooltip.setAttribute('role', 'doc-footnote');
+      tooltip.innerHTML = source.innerHTML;
+
+      // 去掉"返回引用"的回跳箭头 —— 在浮层里它没有意义
+      tooltip.querySelector('[data-footnote-backref]')?.remove();
+
+      ref.parentElement?.appendChild(tooltip);
+    }
+  })();
+</script>

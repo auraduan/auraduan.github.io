@@ -6,6 +6,7 @@ import katexStyles from 'katex/dist/katex.min.css?url';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toc from '../../components/Toc.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
+import FootnoteTooltip from '../../components/FootnoteTooltip.astro';
 import {
   adjacentPosts,
   formatDate,
@@ -37,8 +38,15 @@ const related = relatedPosts(post, all);
 // 相邻文章：按时间轴取前后各一篇。prev = 更早的一篇，next = 更新的一篇
 const { prev, next } = adjacentPosts(post, all);
 
-// 目录只收二、三级标题
-const toc = data.toc ? headings.filter((h) => h.depth === 2 || h.depth === 3) : [];
+// 目录只收二、三级标题。
+// 排除 GFM 脚注区自动生成的 "Footnotes" 标题 —— 它是给屏幕阅读器用的，
+// 不该出现在目录里，否则每篇带脚注的文章都会多一项。
+const isFootnoteHeading = (slug: string) =>
+  slug === 'footnote-label' || slug.startsWith('user-content-fn');
+
+const toc = data.toc
+  ? headings.filter((h) => (h.depth === 2 || h.depth === 3) && !isFootnoteHeading(h.slug))
+  : [];
 
 /**
  * 封面与标题并排。
@@ -67,6 +75,7 @@ const ogImage = data.cover
   {data.math && <link slot="head" rel="stylesheet" href={katexStyles} />}
 
   <ReadingProgress />
+  <FootnoteTooltip />
 
   <article class="mx-auto max-w-[980px] px-6 pb-16 pt-20 md:pt-24">
     <header class="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-10">
@@ -93,6 +102,31 @@ const ogImage = data.cover
           }
           <span aria-hidden="true">·</span>
           <span>约 {readingTime(body)} 分钟</span>
+
+          <!-- 分享：优先系统原生分享（移动端最好用），不支持则降级为复制链接 -->
+          <button
+            type="button"
+            id="share-post"
+            data-share-title={data.title}
+            class="tap-area ml-1 inline-flex items-center gap-1 text-caption text-ink-muted transition-colors hover:text-ink"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              class="h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M12 3v12"></path>
+              <path d="M7.5 7.5 12 3l4.5 4.5"></path>
+              <path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"></path>
+            </svg>
+            <span data-share-label>分享</span>
+          </button>
         </div>
 
         {
@@ -220,3 +254,51 @@ const ogImage = data.cover
     </div>
   </article>
 </BaseLayout>
+
+<script data-astro-rerun>
+  /**
+   * 分享按钮 —— 优先用系统原生分享（移动端体验最好）；
+   * 不支持时降级为复制链接。桌面 Firefox 等没有 navigator.share，
+   * 所以降级分支不是可选项，是必需的。
+   */
+  (() => {
+    const scope = /** @type {any} */ (window);
+    if (scope.__shareBound) return;
+    scope.__shareBound = true;
+
+    let resetTimer;
+
+    document.addEventListener('click', async (event) => {
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('#share-post') : null;
+      if (!button) return;
+
+      const title = button.getAttribute('data-share-title') ?? document.title;
+      const url = location.href;
+      const label = button.querySelector('[data-share-label]');
+      const original = label ? label.textContent : '';
+
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, url });
+        } catch (e) {
+          /* 用户取消分享，静默 */
+        }
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(url);
+        if (label) {
+          label.textContent = '已复制';
+          clearTimeout(resetTimer);
+          resetTimer = setTimeout(() => {
+            label.textContent = original;
+          }, 1600);
+        }
+      } catch (e) {
+        /* 剪贴板不可用（非 HTTPS 或权限被拒），静默 */
+      }
+    });
+  })();
+</script>

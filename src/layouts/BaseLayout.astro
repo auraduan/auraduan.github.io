@@ -179,6 +179,48 @@ const ogImage = image ? new URL(image, Astro.site).href : undefined;
   })();
 </script>
 
+<script data-astro-rerun>
+  /**
+   * 复制带出处 —— 选中正文并复制时，剪贴板里自动补一行来源。
+   *
+   * 两处刻意的克制，避免变成"复制时偷偷塞广告"那种惹人烦的做法：
+   *   1. 只在长选中（≥ 80 字）时生效 —— 摘几个词、复制一条命令不该被打扰；
+   *   2. 只在正文区（.prose-article）内生效。
+   *
+   * 只改写 text/plain；text/html 保持原样，否则粘进富文本编辑器会带上多余排版。
+   */
+  (() => {
+    const scope = /** @type {any} */ (window);
+    if (scope.__copyAttributionBound) return;
+    scope.__copyAttributionBound = true;
+
+    const MIN_LENGTH = 80;
+
+    document.addEventListener('copy', (event) => {
+      const selection = document.getSelection();
+      if (!selection || selection.isCollapsed) return;
+
+      const text = selection.toString().trim();
+      if (text.length < MIN_LENGTH) return;
+
+      // 只在正文里 —— 页眉、页脚、代码块复制都不碰
+      const anchor = selection.anchorNode;
+      const element = anchor instanceof Element ? anchor : anchor?.parentElement;
+      if (!element || !element.closest('.prose-article')) return;
+
+      const clip = event.clipboardData;
+      if (!clip) return;
+
+      const siteName =
+        document.querySelector('meta[property="og:site_name"]')?.getAttribute('content') ??
+        document.title;
+
+      clip.setData('text/plain', `${text}\n\n—— 来自 ${siteName}\n${location.href}`);
+      event.preventDefault();
+    });
+  })();
+</script>
+
 <style is:global>
   /* 入场动效基态。全局的 prefers-reduced-motion 规则会把时长压到 0.01ms，
      因此开启「减少动效」时元素直接呈现终态，不会留下不可见的内容。
