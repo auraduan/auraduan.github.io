@@ -33,16 +33,50 @@
   </svg>
 </button>
 
-<script is:inline>
-  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+<script is:inline data-astro-rerun>
+  // data-astro-rerun：视图过渡后脚本重新执行 —— 导航会把按钮换成新的，
+  // 需要重新接管点击。__themeToggleBound 守卫保证 document 级监听只绑一次。
+  (() => {
+    if (window.__themeToggleBound) return;
+    window.__themeToggleBound = true;
+
     const root = document.documentElement;
-    const next = root.classList.contains('dark') ? 'light' : 'dark';
-    root.classList.remove('dark', 'light');
-    root.classList.add(next);
-    try {
-      localStorage.setItem('theme', next);
-    } catch (e) {
-      /* 隐私模式下 localStorage 可能不可用，忽略 */
-    }
-  });
+
+    /**
+     * 颜色过渡只在「用户主动切换」的瞬间启用。
+     * 若常开，首屏加载会先以浅色渲染、再渐变到深色 —— 反而像出了问题。
+     */
+    let timer;
+    const switchTheme = (next) => {
+      root.classList.add('theme-transition');
+      root.classList.remove('dark', 'light');
+      root.classList.add(next);
+      clearTimeout(timer);
+      timer = setTimeout(() => root.classList.remove('theme-transition'), 320);
+    };
+
+    /**
+     * favicon 跟随主题：SVG favicon 内部的 prefers-color-scheme 只认系统偏好，
+     * 认不了站内由 class 驱动的切换，所以这里显式替换一次。
+     */
+    const setFavicon = (theme) => {
+      const icon = document.getElementById('favicon-link');
+      if (icon) icon.setAttribute('href', theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg');
+    };
+
+    // 事件委托：绑在 document 上，导航换了按钮也不必重新绑定
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('#theme-toggle')) return;
+
+      const next = root.classList.contains('dark') ? 'light' : 'dark';
+      switchTheme(next);
+      setFavicon(next);
+      try {
+        localStorage.setItem('theme', next);
+      } catch (e) {
+        /* 隐私模式下 localStorage 可能不可用，忽略 */
+      }
+    });
+  })();
 </script>

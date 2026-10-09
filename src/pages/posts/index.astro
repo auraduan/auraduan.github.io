@@ -88,16 +88,51 @@ const categories = collectCategories(posts);
   </div>
 </BaseLayout>
 
-<script is:inline>
+<script is:inline data-astro-rerun>
   (() => {
     const buttons = document.querySelectorAll('[data-cat-filter]');
     const items = document.querySelectorAll('[data-post-item]');
     const empty = document.querySelector('[data-post-empty]');
     if (buttons.length === 0) return;
 
+    /** 记录可见条目当前的位置（FLIP 的 First） */
+    const measure = () => {
+      const map = new Map();
+      for (const item of items) {
+        if (item.style.display === 'none') continue;
+        map.set(item, item.getBoundingClientRect().top);
+      }
+      return map;
+    };
+
+    /**
+     * FLIP —— First / Last / Invert / Play。
+     * 筛选会让留下的条目位置突变，这里按「旧位置 − 新位置」把它们平移回去，
+     * 再用 Web Animations 滑回原处，于是重排变成平滑移动而非瞬间跳变。
+     * 新出现的条目不在 before 里，不参与动画（避免从屏幕外飞进来）。
+     */
+    const play = (before) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      for (const item of items) {
+        if (item.style.display === 'none') continue;
+        const prevTop = before.get(item);
+        if (prevTop === undefined) continue;
+
+        const delta = prevTop - item.getBoundingClientRect().top;
+        if (Math.abs(delta) < 1) continue;
+
+        item.animate(
+          [{ transform: `translateY(${delta}px)` }, { transform: 'none' }],
+          { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
+        );
+      }
+    };
+
     for (const btn of buttons) {
       btn.addEventListener('click', () => {
         const selected = btn.dataset.catFilter || '';
+        const before = measure();
 
         for (const b of buttons) b.setAttribute('aria-pressed', String(b === btn));
 
@@ -109,6 +144,7 @@ const categories = collectCategories(posts);
         }
 
         if (empty) empty.hidden = shown > 0;
+        play(before);
       });
     }
 

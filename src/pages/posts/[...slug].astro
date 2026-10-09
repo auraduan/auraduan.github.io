@@ -5,6 +5,7 @@ import katexStyles from 'katex/dist/katex.min.css?url';
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toc from '../../components/Toc.astro';
+import ReadingProgress from '../../components/ReadingProgress.astro';
 import {
   adjacentPosts,
   formatDate,
@@ -64,6 +65,8 @@ const ogImage = data.cover
     看起来就是「公式重叠、乱成一团」。仅在 math: true 的文章里加载。
   -->
   {data.math && <link slot="head" rel="stylesheet" href={katexStyles} />}
+
+  <ReadingProgress />
 
   <article class="mx-auto max-w-[980px] px-6 pb-16 pt-20 md:pt-24">
     <header class="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-10">

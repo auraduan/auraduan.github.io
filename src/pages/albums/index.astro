@@ -36,6 +36,11 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
   />
 
   <div class="mx-auto max-w-[980px] px-6 pb-24">
+    <!-- 换一种看法：按时间铺开（避免时间线页成为只能手输 URL 的孤岛） -->
+    <p class="mb-6 text-small">
+      <a href="/albums/timeline" class="tap-area text-accent">按时间线看 →</a>
+    </p>
+
     <!-- 统计条 -->
     {
       albums.length > 0 && (
@@ -127,7 +132,7 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
   </div>
 </BaseLayout>
 
-<script is:inline>
+<script is:inline data-astro-rerun>
   (() => {
     const buttons = document.querySelectorAll('[data-mood-filter]');
     const items = document.querySelectorAll('[data-album-item]');

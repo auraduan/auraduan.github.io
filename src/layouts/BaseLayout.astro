@@ -1,7 +1,9 @@
 ---
 import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import BackToTop from '../components/BackToTop.astro';
 import SearchPalette from '../components/SearchPalette.astro';
 import { SITE } from '../site.config';
 
@@ -35,10 +37,17 @@ const ogImage = image ? new URL(image, Astro.site).href : undefined;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {/*
+      视图过渡：站内跳转时做一次淡入淡出，而不是白屏硬切。
+      Astro 原生能力，零额外依赖；默认动画即为克制的 fade，符合 §6.9。
+      过渡结束后新页面会重新执行脚本，所以主题初始化与滚动监听都会自然重绑。
+    */}
+    <ClientRouter />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" id="favicon-link" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
 
@@ -62,10 +71,27 @@ const ogImage = image ? new URL(image, Astro.site).href : undefined;
       (() => {
         try {
           const stored = localStorage.getItem('theme');
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const theme =
-            stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+          let theme;
+
+          if (stored === 'dark' || stored === 'light') {
+            // 用户手动选过 —— 以他的选择为准，永不被覆盖
+            theme = stored;
+          } else {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            // 系统是深色就用深色；系统是浅色时，按时间自动切（入夜转深色）
+            theme = prefersDark || new Date().getHours() < 6 || new Date().getHours() >= 19
+              ? 'dark'
+              : 'light';
+          }
+
           document.documentElement.classList.add(theme);
+
+          // favicon 跟随主题：SVG 内部的 prefers-color-scheme 只认系统偏好，
+          // 认不了站内由 class 驱动的切换，所以这里显式替换一次。
+          const icon = document.getElementById('favicon-link');
+          if (icon) {
+            icon.setAttribute('href', theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg');
+          }
         } catch (e) {
           document.documentElement.classList.add('light');
         }
@@ -106,33 +132,51 @@ const ogImage = image ? new URL(image, Astro.site).href : undefined;
 
     <Footer />
 
+    <!-- 回到顶部：滚出首屏后浮现 -->
+    <BackToTop />
+
     <!-- 命令面板（站内搜索）：入口在页眉按钮与 Ctrl/⌘+K -->
     <SearchPalette />
   </body>
 </html>
 
-<script>
+<script data-astro-rerun>
   // 滚动入场动效：只播一次，回滚不重播（需求方案 §6.8）
-  const revealables = document.querySelectorAll('[data-reveal]');
+  //
+  // ⚠ 视图过渡下脚本会随每次导航重新执行。observer 复用同一个（挂在 window 上），
+  //   但每次都必须把「新页面里还没 revealed 的元素」重新纳入观察 ——
+  //   否则这些元素会永远停在 opacity: 0，表现为「点导航后内容一片空白，刷新才出现」。
+  (() => {
+    const pending = document.querySelectorAll('[data-reveal]:not(.is-revealed)');
+    if (pending.length === 0) return;
 
-  if (revealables.length > 0 && 'IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-revealed');
-            observer.unobserve(entry.target);
+    if (!('IntersectionObserver' in window)) {
+      // 不支持时直接呈现终态，不留白屏
+      pending.forEach((el) => el.classList.add('is-revealed'));
+      return;
+    }
+
+    // ⚠ 带 data-astro-rerun 的脚本会被 Astro 内联输出、**不经过 esbuild 转译**，
+    //   所以这里不能写 TS 语法（`as unknown as` 会原样进浏览器 → 语法错误 → 整块脚本废掉）。
+    //   用 JSDoc 断言，TS 与原生 JS 下都合法。
+    const scope = /** @type {any} */ (window);
+
+    if (!scope.__revealObserver) {
+      scope.__revealObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-revealed');
+              scope.__revealObserver.unobserve(entry.target);
+            }
           }
-        }
-      },
-      { rootMargin: '0px 0px -10% 0px' }
-    );
+        },
+        { rootMargin: '0px 0px -10% 0px' }
+      );
+    }
 
-    revealables.forEach((el) => observer.observe(el));
-  } else {
-    // 不支持 IntersectionObserver 时直接呈现终态，不留白屏
-    revealables.forEach((el) => el.classList.add('is-revealed'));
-  }
+    pending.forEach((el) => scope.__revealObserver.observe(el));
+  })();
 </script>
 
 <style is:global>

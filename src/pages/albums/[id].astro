@@ -149,8 +149,9 @@ const linked = posts.filter((post) => post.data.album === album.id);
   </article>
 </BaseLayout>
 
-<script>
+<script data-astro-rerun>
   // 唱片机开关：class 切在按钮上，样式与动效全在下方 <style> 里
+  // data-astro-rerun：视图过渡后按钮是新的，需要重新接管点击
   const turntable = document.querySelector<HTMLElement>('[data-vinyl-toggle]');
   turntable?.addEventListener('click', () => {
     const playing = turntable.classList.toggle('is-playing');

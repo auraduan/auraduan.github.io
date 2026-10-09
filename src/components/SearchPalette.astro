@@ -289,9 +289,10 @@ const shortcuts = [
   }
 </style>
 
-<script>
+<script data-astro-rerun>
   // 命令面板逻辑。Astro 的 <script> 是模块脚本（defer），DOM 已就绪。
   // 与其它组件解耦的方式：页眉按钮挂 data-search-open，这里统一绑定。
+  // data-astro-rerun：视图过渡后面板 DOM 会被替换，脚本需要重新接管。
 
   type PagefindResult = {
     url: string;
@@ -488,6 +489,10 @@ const shortcuts = [
       document.documentElement.style.overflow = 'hidden'; // 锁底页滚动
       input!.focus();
       input!.select();
+
+      // 后台预加载搜索索引：等用户真敲字时通常已就绪，省掉首次搜索的等待。
+      // （正因为等待几乎为零，这里刻意不做「加载中」动画。）
+      void ensurePagefind();
     }
 
     function close() {
@@ -517,7 +522,13 @@ const shortcuts = [
       el.addEventListener('click', close);
     }
 
-    document.addEventListener('keydown', (e) => {
+    // ⚠ 视图过渡下本脚本会随每次导航重新执行，而 document 级监听不会自动消失。
+    //   把上次绑定的回调存在 window 上，重执行时先摘掉，避免逐次累积。
+    // 同理：带 data-astro-rerun 的脚本不转译 TS，避免写 `as unknown as`
+    const scope = /** @type {any} */ (window);
+    if (scope.__searchKeydown) document.removeEventListener('keydown', scope.__searchKeydown);
+
+    scope.__searchKeydown = (e) => {
       const key = e.key;
       if ((e.ctrlKey || e.metaKey) && (key === 'k' || key === 'K')) {
         e.preventDefault();
@@ -528,7 +539,9 @@ const shortcuts = [
         e.preventDefault();
         close();
       }
-    });
+    };
+
+    document.addEventListener('keydown', scope.__searchKeydown);
 
     input.addEventListener('input', () => {
       if (debounceTimer) clearTimeout(debounceTimer);

@@ -24,12 +24,15 @@ const { headings } = Astro.props;
   </ul>
 </nav>
 
-<script>
+<script data-astro-rerun>
   /**
    * 阅读位置跟随：滚动时把当前所在章节的目录项标为当前位置。
    *
    * 判定方式是「最后一个已经越过基准线的标题」——比 IntersectionObserver
    * 更稳，因为长章节里 IO 会长时间收不到事件。滚动回调用 rAF 节流。
+   *
+   * ⚠ 视图过渡下脚本每次导航都会重跑，window 级监听必须先摘掉上一轮的，
+   *   否则会逐次累积。
    */
   (() => {
     const links = Array.from(
@@ -73,6 +76,15 @@ const { headings } = Astro.props;
         sync();
         ticking = false;
       });
+    };
+
+    // 先摘掉上一轮导航绑的监听，再绑新的（避免逐次累积）
+    // 同理：带 data-astro-rerun 的脚本不转译 TS，避免写 `as unknown as`
+    const scope = /** @type {any} */ (window);
+    scope.__tocCleanup?.();
+    scope.__tocCleanup = () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
     };
 
     sync();

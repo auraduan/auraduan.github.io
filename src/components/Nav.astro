@@ -147,20 +147,35 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
   </nav>
 </header>
 
-<script is:inline>
+<script is:inline data-astro-rerun>
   // 首屏之上的页眉透明态。紧跟在页眉之后执行，早于首次绘制，因此不会闪。
+  //
+  // ⚠ 视图过渡下：header 会在每次导航时被替换，而脚本默认只执行一次。
+  //   所以 sync 里每次都重新查询元素，window 级监听则只绑一次。
   (() => {
-    const header = document.querySelector('[data-site-header]');
-    if (!header || !header.hasAttribute('data-over-hero')) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.__heroHeaderBound) return;
+    window.__heroHeaderBound = true;
 
     const THRESHOLD = 40;
+
     const sync = () => {
+      const header = document.querySelector('[data-site-header]');
+      if (!header) return;
+
+      // 非首页没有 data-over-hero：确保摘掉透明态
+      if (!header.hasAttribute('data-over-hero')) {
+        header.classList.remove('is-transparent');
+        return;
+      }
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
       header.classList.toggle('is-transparent', window.scrollY < THRESHOLD);
     };
 
     sync();
     window.addEventListener('scroll', sync, { passive: true });
+    // 站内导航后是新页面：重新判断一次
+    document.addEventListener('astro:page-load', sync);
   })();
 </script>
 

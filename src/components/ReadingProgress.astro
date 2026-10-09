@@ -1,0 +1,88 @@
+---
+/**
+ * 阅读进度条 —— 贴在页眉下沿的一条细线，显示当前文章的阅读进度。
+ *
+ * 只在文章详情页引入：其他页面没有「读完」这个概念，进度条会显得莫名其妙。
+ * 进度以「正文区（.prose-article）」为基准，而不是整页 —— 整页还包含
+ * 页脚、相关文章等，那部分不该计入阅读进度。
+ *
+ * 用 scroll + rAF 节流，把「进度 = 已滚过正文的比例」写进 CSS 变量。
+ */
+---
+
+<div id="reading-progress" class="reading-progress" aria-hidden="true"></div>
+
+<style>
+  .reading-progress {
+    position: fixed;
+    top: var(--header-h); /* 紧贴页眉下沿 */
+    left: 0;
+    z-index: 45;
+    height: 2px;
+    width: 0;
+    background-color: var(--accent);
+    pointer-events: none;
+    /* 只对宽度做过渡，避免滚动时抖动 */
+    transition: width 120ms linear;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reading-progress {
+      transition: none;
+    }
+  }
+</style>
+
+<script data-astro-rerun>
+  // data-astro-rerun：文章之间互相跳转时页面会整个换掉，必须重新取元素。
+  // __readingProgressBound 守卫保证监听只绑一次。
+  (() => {
+    if (window.__readingProgressBound) return;
+    window.__readingProgressBound = true;
+
+    let ticking = false;
+
+    const update = () => {
+      const bar = document.getElementById('reading-progress');
+      // 非文章页没有进度条，也不必清什么
+      if (!bar) {
+        ticking = false;
+        return;
+      }
+
+      const article = document.querySelector('.prose-article');
+      if (!article) {
+        bar.style.width = '0';
+        ticking = false;
+        return;
+      }
+
+      const rect = article.getBoundingClientRect();
+      const start = rect.top + window.scrollY;
+      // 可滚动的正文长度：正文高度减去一屏
+      const scrollable = article.offsetHeight - window.innerHeight;
+      const passed = window.scrollY - start;
+
+      const ratio = scrollable > 0 ? passed / scrollable : 0;
+      const clamped = Math.min(1, Math.max(0, ratio));
+
+      bar.style.width = `${(clamped * 100).toFixed(2)}%`;
+      ticking = false;
+    };
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(update);
+      },
+      { passive: true }
+    );
+
+    window.addEventListener('resize', update, { passive: true });
+    document.addEventListener('astro:page-load', update);
+
+    update();
+  })();
+</script>

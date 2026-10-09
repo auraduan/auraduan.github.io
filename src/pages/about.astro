@@ -3,6 +3,7 @@ import { Image } from 'astro:assets';
 
 import BaseLayout from '../layouts/BaseLayout.astro';
 import About from '../data/about.md';
+import Uses from '../data/uses.md';
 import { PROFILES, SITE } from '../site.config';
 
 /**
@@ -106,6 +107,11 @@ const ICON_PATHS: Record<string, string> = {
 
       <div class="prose-article mt-12">
         <About />
+      </div>
+
+      <!-- 装备区块：内容源 src/data/uses.md，单独一份便于增删 -->
+      <div class="prose-article mt-16 border-t border-line pt-16">
+        <Uses />
       </div>
     </div>
   </article>

@@ -1,0 +1,200 @@
+---
+import { Image } from 'astro:assets';
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import { getPublishedAlbums } from '../../lib/content';
+
+/**
+ * 收听时间线 —— 把专辑按「首次记录时间」铺成一条竖轴。
+ *
+ * 排序口径与专辑墙一致：优先 listenedAt，没填的退回用 year（当年 1 月 1 日）。
+ * 由于按年份分组，年内的日期只显示「月-日」，年份由分组标题承担。
+ */
+const albums = await getPublishedAlbums();
+
+const toTimestamp = (album: (typeof albums)[number]) =>
+  album.data.listenedAt
+    ? album.data.listenedAt.getTime()
+    : new Date(album.data.year, 0, 1).getTime();
+
+const sorted = [...albums].sort((a, b) => toTimestamp(b) - toTimestamp(a));
+
+// 按年份分组（保持已排好的顺序，所以用 Map 而不是 sort）
+const groups = new Map<number, typeof sorted>();
+for (const album of sorted) {
+  const year = album.data.listenedAt
+    ? album.data.listenedAt.getFullYear()
+    : album.data.year;
+  const bucket = groups.get(year);
+  if (bucket) bucket.push(album);
+  else groups.set(year, [album]);
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<BaseLayout title="收听时间线" description="按时间铺开的唱片记录">
+  <PageHeader
+    title="收听时间线"
+    description="同一面墙，换一种看法：按第一次记录的时间，从最近往回排。"
+  />
+
+  <div class="mx-auto max-w-[760px] px-6 pb-24">
+    {
+      albums.length === 0 ? (
+        <p class="text-small text-ink-muted">还没有专辑。</p>
+      ) : (
+        [...groups.entries()].map(([year, items]) => (
+          <section class="tl-year" data-reveal>
+            <h2 class="tl-year-label">{year}</h2>
+
+            <ul class="tl-list">
+              {items.map((album) => (
+                <li class="tl-item">
+                  <a href={`/albums/${album.id}`} class="tl-link">
+                    <span class="tl-dot" aria-hidden="true" />
+
+                    <Image
+                      src={album.data.cover}
+                      alt=""
+                      widths={[80, 160]}
+                      sizes="80px"
+                      class="tl-cover"
+                      loading="lazy"
+                    />
+
+                    <span class="tl-meta">
+                      <span class="tl-title">{album.data.title}</span>
+                      <span class="tl-artist">{album.data.artist}</span>
+                    </span>
+
+                    <span class="tl-right">
+                      {album.data.listenedAt && (
+                        <time datetime={album.data.listenedAt.toISOString()}>
+                          {pad(album.data.listenedAt.getMonth() + 1)}-
+                          {pad(album.data.listenedAt.getDate())}
+                        </time>
+                      )}
+                      {album.data.rating !== undefined && (
+                        <span class="tl-rating">{album.data.rating.toFixed(1)}</span>
+                      )}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      )
+    }
+
+    <p class="mt-16 text-caption text-ink-muted">
+      <a href="/albums" class="text-accent">← 回到专辑墙</a>
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  .tl-year {
+    margin-top: 3.5rem;
+  }
+
+  .tl-year:first-of-type {
+    margin-top: 0;
+  }
+
+  .tl-year-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 1.25rem;
+  }
+
+  /* 竖轴靠 li 的左边框串起来，节点圆点压在轴上 */
+  .tl-list {
+    border-left: 1px solid var(--line);
+    margin-left: 0.25rem;
+  }
+
+  .tl-item + .tl-item {
+    margin-top: 0.5rem;
+  }
+
+  .tl-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem 0.5rem 1.5rem;
+    border-radius: var(--radius-card-sm);
+    transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tl-link:hover {
+    background-color: var(--surface-alt);
+  }
+
+  .tl-dot {
+    position: absolute;
+    left: -4.5px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-top: -4px;
+    border-radius: 50%;
+    background-color: var(--line);
+    transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tl-link:hover .tl-dot {
+    background-color: var(--accent);
+  }
+
+  .tl-cover {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .tl-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .tl-title {
+    font-size: 0.9375rem;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tl-artist {
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tl-right {
+    margin-left: auto;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tl-rating {
+    color: var(--accent);
+  }
+</style>

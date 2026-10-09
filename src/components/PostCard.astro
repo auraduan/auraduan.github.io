@@ -106,8 +106,14 @@ const aspect = resolveAspect(data.coverAspect, data.cover);
     margin-top: 16px;
   }
 
-  .post-card--column .post-cover,
-  .post-card--row .post-cover {
-    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 封面在悬停时缓慢推近 —— 比整卡位移更有「活」感。
+     容器已 overflow-hidden，图片放大不会溢出圆角。 */
+  .post-card--column .post-cover img,
+  .post-card--row .post-cover img {
+    transition: transform 520ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .post-card:hover .post-cover img {
+    transform: scale(1.03);
   }
 </style>

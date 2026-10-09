@@ -1,6 +1,47 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/noto-sans-sc';
+
+/**
+ * 中文字体 Noto Sans SC —— 用子集化版本，不用 fontsource 的全量分片。
+ *
+ * 全量是 101 个 unicode-range 分片、约 4MB；`scripts/subset-noto-font.py`
+ * 把它裁到「站点实际用字 + GB2312 一级汉字字底」，降到约 1.3MB。
+ * 新增内容若用到生僻字，重跑那个脚本即可。
+ */
+@import './fonts/noto.css';
+
+/**
+ * 西文字体 Inter —— 只取 latin 与 latin-ext 两个子集。
+ *
+ * 不用 `@import '@fontsource-variable/inter'`：那是全量（7 个子集），
+ * 会把西里尔、希腊、越南语字形一并打进产物，而中文站永远用不到它们。
+ * 这里手写 @font-face 只留需要的两个，unicode-range 与官方定义一致。
+ *
+ * 路径指向 node_modules 内的字体文件，由 Vite 当作资源打包。
+ */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../../node_modules/@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 /**
  * 设计令牌 —— 全站视觉基线，取值依据 docs/需求方案.md §6。
@@ -290,6 +331,53 @@ summary:active,
     outline-offset: 3px;
     border-radius: 4px;
   }
+
+  /* 数字等宽 —— 日期 / 评分 / 统计数字不再因字宽不同而左右跳动 */
+  time,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/**
+ * 细滚动条 —— 系统默认滚动条在浅色页面上很突兀，且各平台宽窄不一。
+ * 统一成 8px 低调款：轨道透明、滑块用墨色透明层，hover 时加深。
+ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ink) 22%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+/**
+ * 主题切换过渡 —— 只在用户主动切换的瞬间由脚本挂上这个类（320ms 后摘掉）。
+ * 常开的话，首屏加载会先以浅色渲染再渐变到深色，看着像出了问题。
+ */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* 全站必须尊重「减少动效」偏好 —— §6.8 / §6.10 */
@@ -310,6 +398,14 @@ summary:active,
    ------------------------------------------------------------------ */
 .prose-article {
   color: var(--ink);
+}
+
+/* 首段「引言化」：字号略大、行高放松、色阶降一档，
+   像杂志的导语，给读者一个进入的缓冲。 */
+.prose-article > p:first-of-type {
+  font-size: 1.125em;
+  line-height: 1.8;
+  color: var(--ink-muted);
 }
 
 .prose-article > * + * {
@@ -339,14 +435,20 @@ summary:active,
   line-height: 1.75;
 }
 
+/* 正文链接：下划线从左侧划出，而不是突然出现。
+   用背景图代替 text-decoration —— 后者无法做过渡动画。 */
 .prose-article a {
   color: var(--accent);
   text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .prose-article a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  background-size: 100% 1px;
 }
 
 .prose-article strong {
@@ -356,6 +458,9 @@ summary:active,
 .prose-article ul,
 .prose-article ol {
   padding-left: 1.5em;
+  /* 列表比普通段落多留一点上下空间，不让列表项和正文黏在一起 */
+  margin-top: 1.8em;
+  margin-bottom: 1.8em;
 }
 
 .prose-article ul {
@@ -374,24 +479,37 @@ summary:active,
   color: var(--ink-muted);
 }
 
+/* 引用块：左右都留白 + 更松的行高，让引文从正文里「浮」出来 */
 .prose-article blockquote {
   border-left: 2px solid var(--line);
-  padding-left: 1.25em;
+  padding: 0.25em 1.25em;
+  margin-top: 2em;
+  margin-bottom: 2em;
   color: var(--ink-muted);
+  line-height: 1.85;
 }
 
 .prose-article code:not(pre code) {
   font-family: var(--font-mono);
-  font-size: 0.89em;
+  font-size: 0.875em;
   background-color: var(--surface-alt);
-  padding: 0.15em 0.4em;
+  padding: 0.2em 0.45em;
   border-radius: 6px;
+  /* 长标识符不许撑破正文栏 */
+  word-break: break-word;
 }
 
 .prose-article img {
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-card-sm);
+}
+
+/* 图片是阅读中的「视觉停留点」，上下留白要比普通段落大。
+   Markdown 图片通常被包在 <p> 里，所以留白加在有图的段落上。 */
+.prose-article p:has(> img) {
+  margin-top: 2.5em;
+  margin-bottom: 2.5em;
 }
 
 .prose-article hr {
@@ -410,7 +528,7 @@ summary:active,
 .prose-article th,
 .prose-article td {
   text-align: left;
-  padding: 0.6em 0.8em;
+  padding: 0.85em 0.9em;
   border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
@@ -463,9 +581,69 @@ summary:active,
   padding: 0.25em 0;
 }
 
+/* 代码块行高放宽 —— Expressive Code 默认偏紧，长代码读起来吃力 */
+.expressive-code .ec-line,
+.expressive-code pre,
+.expressive-code code {
+  line-height: 1.7;
+}
+
 /* Mermaid 图容器 */
 .prose-article .mermaid {
   display: flex;
   justify-content: center;
   margin: 2em 0;
+}
+
+/**
+ * 打印样式 —— 有人真的会把文章打印或存成 PDF。
+ * 目标：纸面上只剩内容本身。导航、页脚、目录、相邻文章全部隐藏；
+ * 外链补出完整地址（纸上点不动链接）；标题与图表不许被拆到两页。
+ */
+@media print {
+  .site-header,
+  footer,
+  nav.toc,
+  aside,
+  nav[aria-label='相邻文章'] {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .prose-article {
+    max-width: none;
+    font-size: 11pt;
+  }
+
+  /* 纸上不显示彩色链接：改为继承文字色 + 下划线，并补出完整地址 */
+  .prose-article a {
+    color: inherit;
+    background-image: none;
+    text-decoration: underline;
+  }
+
+  .prose-article a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: #555;
+  }
+
+  /* 标题不要落在页尾；图片、公式、代码块、引文不要被拆开 */
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  img,
+  .katex-display,
+  pre,
+  blockquote {
+    break-inside: avoid;
+  }
 }
