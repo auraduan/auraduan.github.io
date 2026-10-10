@@ -11,6 +11,21 @@ const moods = [...new Set(albums.flatMap((a) => a.data.mood))].sort((a, b) =>
   a.localeCompare(b, 'zh')
 );
 
+/**
+ * 发行形态。候选**只从实际数据里汇总**，所以不会出现点不出东西的空按钮
+ * （填了 EP 它自己就长出来）。顺序按曲目规模排，不按字母序。
+ */
+const TYPE_ORDER = ['LP', 'EP', 'Live', '精选', '单曲'];
+const types = TYPE_ORDER.filter((t) => albums.some((a) => a.data.type === t));
+
+/**
+ * 演唱语种。只做筛选、**不在卡片上显示** —— 语种回答「它属于哪一类」，
+ * 而不是「这张特别在哪」，与 `type` 的标记分工不同。
+ */
+const languages = [...new Set(albums.map((a) => a.data.language).filter(Boolean))].sort((a, b) =>
+  a.localeCompare(b, 'zh')
+);
+
 const artistCount = new Set(albums.map((a) => a.data.artist)).size;
 
 const rated = albums.filter((a) => a.data.rating !== undefined);
@@ -88,10 +103,65 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
       )
     }
 
+    <!-- 发行形态筛选：与下方心情筛选是两套独立条件，同时生效（AND） -->
+    {
+      types.length > 0 && (
+        <div class="mb-6 flex flex-wrap items-center gap-2" data-reveal>
+          <span class="mr-1 text-caption text-ink-muted">形态</span>
+          <button
+            type="button"
+            data-type-filter=""
+            aria-pressed="true"
+            class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink transition-colors"
+          >
+            全部
+          </button>
+          {types.map((type) => (
+            <button
+              type="button"
+              data-type-filter={type}
+              aria-pressed="false"
+              class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink-muted transition-colors"
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      )
+    }
+
+    <!-- 演唱语种筛选：与形态、心情三套条件同时生效（AND） -->
+    {
+      languages.length > 0 && (
+        <div class="mb-6 flex flex-wrap items-center gap-2" data-reveal>
+          <span class="mr-1 text-caption text-ink-muted">语种</span>
+          <button
+            type="button"
+            data-lang-filter=""
+            aria-pressed="true"
+            class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink transition-colors"
+          >
+            全部
+          </button>
+          {languages.map((lang) => (
+            <button
+              type="button"
+              data-lang-filter={lang}
+              aria-pressed="false"
+              class="filter-btn rounded-pill border border-line px-4 py-1.5 text-caption text-ink-muted transition-colors"
+            >
+              {lang}
+            </button>
+          ))}
+        </div>
+      )
+    }
+
     <!-- 心情/场景筛选：纯前端，按标签过滤 -->
     {
       moods.length > 0 && (
-        <div class="mb-10 flex flex-wrap gap-2" data-reveal>
+        <div class="mb-10 flex flex-wrap items-center gap-2" data-reveal>
+          <span class="mr-1 text-caption text-ink-muted">心情</span>
           <button
             type="button"
             data-mood-filter=""
@@ -114,6 +184,11 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
       )
     }
 
+    <!-- 无结果时的提示（两套筛选同时无命中时出现） -->
+    <p class="mb-10 hidden text-small text-ink-muted" data-album-empty>
+      没有同时满足这两个条件的专辑。
+    </p>
+
     {
       albums.length > 0 ? (
         <div class="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
@@ -134,25 +209,48 @@ const maxDecade = Math.max(1, ...decades.map(([, count]) => count));
 
 <script is:inline data-astro-rerun>
   (() => {
-    const buttons = document.querySelectorAll('[data-mood-filter]');
+    // ⚠ is:inline + data-astro-rerun 的脚本不经 esbuild 转译 → 只能写纯 JS
     const items = document.querySelectorAll('[data-album-item]');
-    if (buttons.length === 0) return;
+    const empty = document.querySelector('[data-album-empty]');
+    if (items.length === 0) return;
 
-    for (const btn of buttons) {
-      btn.addEventListener('click', () => {
-        const selected = btn.dataset.moodFilter || '';
+    // 三套筛选（形态 / 语种 / 心情）各自记住当前选择，过滤时**同时生效**（AND）——
+    // 先点「Live」再点「深夜」，应该只剩「现场 且 深夜」。
+    const state = { type: '', lang: '', mood: '' };
 
-        for (const b of buttons) {
-          b.setAttribute('aria-pressed', String(b === btn));
-        }
+    const apply = () => {
+      let shown = 0;
+      for (const item of items) {
+        const card = item.querySelector('.album-card');
+        if (!card) continue;
+        const data = card.dataset;
+        const moods = (data.moods || '').split('|').filter(Boolean);
 
-        for (const item of items) {
-          const card = item.querySelector('.album-card');
-          const moods = (card?.dataset.moods || '').split('|').filter(Boolean);
-          const show = selected === '' || moods.includes(selected);
-          item.style.display = show ? '' : 'none';
-        }
-      });
-    }
+        const ok =
+          (state.type === '' || data.type === state.type) &&
+          (state.lang === '' || data.lang === state.lang) &&
+          (state.mood === '' || moods.includes(state.mood));
+
+        item.style.display = ok ? '' : 'none';
+        if (ok) shown += 1;
+      }
+      if (empty) empty.hidden = shown > 0;
+    };
+
+    const bind = (attr, key) => {
+      const buttons = document.querySelectorAll('[' + attr + ']');
+      if (buttons.length === 0) return;
+      for (const btn of buttons) {
+        btn.addEventListener('click', () => {
+          for (const b of buttons) b.setAttribute('aria-pressed', String(b === btn));
+          state[key] = btn.getAttribute(attr) || '';
+          apply();
+        });
+      }
+    };
+
+    bind('data-type-filter', 'type');
+    bind('data-lang-filter', 'lang');
+    bind('data-mood-filter', 'mood');
   })();
 </script>

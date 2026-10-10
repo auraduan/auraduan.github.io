@@ -2,10 +2,11 @@
 title: "U87"
 artist: "陈奕迅"
 year: 2005
+type: LP
+language: "粤语"
 cover: "./cover.png"
 rating: 9.5
-genre: ["粤语"]
-mood: ["经典", "香港"]
+mood: ["经典"]
 listenedAt: 2025-12-30
 pick: true
 link: ""

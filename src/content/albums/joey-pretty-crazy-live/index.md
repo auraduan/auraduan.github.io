@@ -2,10 +2,11 @@
 title: "PRETTY CRAZY JOEY YUNG CONCERT TOUR 容祖儿演唱会"
 artist: "容祖儿"
 year: 2020
+type: Live
+language: "粤语"
 cover: "./cover.png"
 rating: 9.8
-genre: ["粤语"]
-mood: ["香港", "现场"]
+mood: []
 listenedAt: 2026-05-07
 pick: false
 link: ""

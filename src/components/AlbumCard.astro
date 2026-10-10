@@ -14,6 +14,8 @@ const { data, id } = album;
   href={`/albums/${id}`}
   class="album-card group block focus-visible:outline-none"
   data-moods={data.mood.join('|')}
+  data-type={data.type ?? ''}
+  data-lang={data.language ?? ''}
 >
   <div class="album-lift relative aspect-square w-full">
     <div class="album-flipper">
@@ -59,12 +61,33 @@ const { data, id } = album;
   </div>
 
   <div class="mt-2.5">
-    <p class="truncate text-small text-ink">{data.title}</p>
+    <p class="flex items-center gap-1.5 text-small text-ink">
+      {
+        /* LP 是常态，标了它反而让标记变成背景噪音 —— 只在「不普通」时才显示 */
+        data.type && data.type !== 'LP' && <span class="album-type">{data.type}</span>
+      }
+      <span class="truncate">{data.title}</span>
+    </p>
     <p class="truncate text-caption text-ink-muted">{data.artist}</p>
   </div>
 </a>
 
 <style>
+  /*
+    发行形态标记（Live / EP / 精选 / 单曲）。
+    中性色 —— 全站只有一个强调色，它的语义是「可点 / 当前页」，
+    标记用它会被误读成可点。用淡底 + 次要色，靠形状与位置被识别。
+  */
+  .album-type {
+    flex-shrink: 0;
+    padding: 0 6px;
+    border-radius: 4px;
+    background-color: var(--surface-alt);
+    color: var(--ink-muted);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
   /* 黑胶唱片墙：hover 时整张抬起 + 翻转看背面 */
   .album-lift {
     transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);

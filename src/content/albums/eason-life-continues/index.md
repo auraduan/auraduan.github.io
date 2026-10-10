@@ -2,10 +2,11 @@
 title: "Life Continues..."
 artist: "陈奕迅"
 year: 2006
+type: LP
+language: "粤语"
 cover: "./cover.webp"
 rating: 9.7
-genre: ["粤语"]
-mood: ["深刻", "专注", "香港"]
+mood: ["深刻", "专注"]
 listenedAt: 2025-02-09
 pick: false
 link: ""

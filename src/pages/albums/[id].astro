@@ -202,14 +202,27 @@ const artistEntry = (await collectArtists()).find((entry) => entry.name === data
 </BaseLayout>
 
 <script data-astro-rerun>
-  // 唱片机开关：class 切在按钮上，样式与动效全在下方 <style> 里
-  // data-astro-rerun：视图过渡后按钮是新的，需要重新接管点击
-  const turntable = document.querySelector('[data-vinyl-toggle]');
-  turntable?.addEventListener('click', () => {
-    const playing = turntable.classList.toggle('is-playing');
-    turntable.setAttribute('aria-pressed', String(playing));
-    turntable.setAttribute('aria-label', playing ? '把黑胶收回封套' : '让黑胶转起来');
-  });
+  /**
+   * 唱片机开关：class 切在按钮上，样式与动效全在下方 <style> 里。
+   *
+   * ⚠ 视图过渡下这个脚本会随每次导航重新执行，但**不能依赖「重执行」来重新绑事件** ——
+   *   脚本执行的时机与 DOM 替换之间存在竞态，实测会出现「首次导航进来点了没反应、
+   *   刷新一下就好了」。所以按站内统一做法写：
+   *   ① 幂等守卫（window 级引用）② 点击用**事件委托**绑在 document 上 ③ 回调里现查元素。
+   *   这样与脚本执行几次无关，任何时刻的点击都能命中。
+   */
+  const scope = /** @type {any} */ (window);
+  if (!scope.__vinylDelegated) {
+    scope.__vinylDelegated = true;
+    document.addEventListener('click', (e) => {
+      const el = e.target;
+      const btn = el && el.closest ? el.closest('[data-vinyl-toggle]') : null;
+      if (!btn) return;
+      const playing = btn.classList.toggle('is-playing');
+      btn.setAttribute('aria-pressed', String(playing));
+      btn.setAttribute('aria-label', playing ? '把黑胶收回封套' : '让黑胶转起来');
+    });
+  }
 </script>
 
 <style>
@@ -334,22 +347,37 @@ const artistEntry = (await collectArtists()).find((entry) => entry.name === data
   .album-glow {
     position: absolute;
     inset: 0 0 auto 0;
-    height: 620px;
+    height: 780px;
     z-index: -1;
     pointer-events: none;
     background: radial-gradient(
-      68% 58% at 26% 16%,
-      color-mix(in srgb, var(--album-color) 16%, transparent),
-      transparent 72%
+      72% 56% at 28% 18%,
+      color-mix(in srgb, var(--album-color) 34%, transparent),
+      transparent 100%
     );
+    /*
+      ⚠ 两步必需的 mask。
+      径向渐变是个**椭圆**，它在到达元素左边缘与上边缘时还有颜色，于是被硬裁 ——
+      表现为一条从页眉直下的竖线 + 一条横线（2026-10-10 令宸反馈「左侧突然一根线截断」）。
+      渐变参数调不出「范围大」与「边缘不裁」兼得（要么缩到很小、要么出界被裁），
+      所以让边缘自己渐隐：两个 linear-gradient 取交集，左与上都淡出。
+    */
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0%, #000 20%),
+      linear-gradient(to bottom, transparent 0%, #000 16%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent 0%, #000 20%),
+      linear-gradient(to bottom, transparent 0%, #000 16%);
+    mask-composite: intersect;
   }
 
   /* 同样的透明度在深底上会看不出来，深色主题单独提一档 */
   :global(html.dark) .album-glow {
     background: radial-gradient(
-      68% 58% at 26% 16%,
-      color-mix(in srgb, var(--album-color) 26%, transparent),
-      transparent 72%
+      72% 56% at 28% 18%,
+      color-mix(in srgb, var(--album-color) 46%, transparent),
+      transparent 100%
     );
   }
 </style>

@@ -2,10 +2,11 @@
 title: "Welcome Back"
 artist: "陈慧娴"
 year: 1995
+type: LP
+language: "粤语"
 cover: "./cover.png"
 rating: 9.6
-genre: ["粤语"]
-mood: ["经典", "香港"]
+mood: ["经典"]
 listenedAt: 2024-09-30
 pick: false
 link: ""

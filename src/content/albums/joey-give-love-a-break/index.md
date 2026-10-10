@@ -2,10 +2,11 @@
 title: "Give Love A Break"
 artist: "容祖儿"
 year: 2004
+type: LP
+language: "粤语"
 cover: "./cover.png"
 rating: 9.8
-genre: ["粤语"]
-mood: ["香港", "清新"]
+mood: ["清新"]
 listenedAt: 2025-08-14
 pick: true
 link: ""

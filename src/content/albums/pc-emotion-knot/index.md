@@ -2,10 +2,11 @@
 title: "情意结"
 artist: "陈慧娴"
 year: 2003
+type: LP
+language: "粤语"
 cover: "./cover.png"
 rating: 9.6
-genre: ["粤语"]
-mood: ["遗珠","舒适", "香港"]
+mood: ["遗珠", "舒适"]
 listenedAt: 2024-06-22
 pick: false
 link: ""

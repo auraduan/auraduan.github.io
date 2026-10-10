@@ -2,10 +2,11 @@
 title: "DUO 陈奕迅2010演唱会"
 artist: "陈奕迅"
 year: 2010
+type: Live
+language: "粤语"
 cover: "./cover.png"
 rating: 9.8
-genre: ["粤语"]
-mood: ["香港", "深刻", "现场"]
+mood: ["深刻"]
 listenedAt: 2026-03-28
 pick: true
 link: ""

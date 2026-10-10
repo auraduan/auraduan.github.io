@@ -2,10 +2,11 @@
 title: "梦幻的笑容"
 artist: "谭咏麟"
 year: 1997
+type: LP
+language: "粤语"
 cover: "./cover.png"
 rating: 9.7
-genre: ["粤语"]
-mood: ["香港", "经典", "驾车"]
+mood: ["经典", "驾车"]
 listenedAt: 2023-08-24
 pick: false
 link: ""

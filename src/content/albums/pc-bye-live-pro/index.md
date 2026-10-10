@@ -2,10 +2,11 @@
 title: "陈慧娴 几时再见演唱会 (Live in Hong Kong 1989/升级版)"
 artist: "陈慧娴"
 year: 1989
+type: Live
+language: "粤语"
 cover: "./cover.png"
 rating: 9.7
-genre: ["粤语"]
-mood: ["经典","现场","香港"]
+mood: ["经典"]
 listenedAt: 2024-09-04
 pick: false
 link: ""

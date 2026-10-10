@@ -2,10 +2,11 @@
 title: "永远是你的朋友"
 artist: "陈慧娴"
 year: 1989
+type: LP
+language: "粤语"
 cover: "./cover.png"
 rating: 9.9
-genre: ["粤语"]
-mood: ["深夜", "经典", "香港"]
+mood: ["深夜", "经典"]
 listenedAt: 2021-01-25
 pick: true
 link: ""
