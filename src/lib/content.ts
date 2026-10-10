@@ -1,5 +1,8 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 
+import listeningStatsData from '../data/listening-stats.json';
+import nowPlayingData from '../data/now-playing.json';
+
 export type Post = CollectionEntry<'posts'>;
 export type Album = CollectionEntry<'albums'>;
 
@@ -156,4 +159,136 @@ export function resolveAspect(
   }
 
   return best.replace(':', ' / ');
+}
+
+/* ---------------------------------------------------------------------------
+ * 歌手与音乐数据（三期）
+ *
+ * 歌手不是第三份要逐个手写的清单：绝大多数歌手由专辑的 `artist` 自动汇总产生，
+ * 档案只用来给喜欢的歌手补头像 / 评分 / 简介。
+ * ------------------------------------------------------------------------- */
+
+export type Artist = CollectionEntry<'artists'>;
+
+/** 所有对外可见的歌手档案（= 手写过档案的那部分，多数歌手没有） */
+export async function getPublishedArtists(): Promise<Artist[]> {
+  const artists = await getCollection('artists', ({ data }) => !data.draft);
+  return artists.sort((a, b) => a.data.name.localeCompare(b.data.name, 'zh'));
+}
+
+/** 一位歌手（可能没有档案）+ 他的作品。歌手墙与 /music 花园的数据来源。 */
+export type ArtistEntry = {
+  /** URL 段。有档案时用档案目录名（ASCII），否则退回显示名（浏览器会百分号编码，能用） */
+  id: string;
+  name: string;
+  /** 有档案才有 */
+  profile?: Artist;
+  albums: Album[];
+  rating?: number;
+};
+
+/**
+ * 把专辑按 `artist` 聚合成歌手列表（需求方案 §7.4）。
+ *
+ * 匹配规则：档案的 `name` === 专辑的 `artist`（trim 后精确相等）。
+ * **刻意不做模糊匹配** —— 错别字应当被校验喊出来，而不是悄悄容忍成另一位歌手。
+ *
+ * 两条校验，都只 warn、不中断构建：
+ *   - 有档案却匹配不到任何作品 → 大概率是错别字或写法不一致（§7.9 的兜底）
+ *   - 同一显示名有两份档案     → 后者被忽略
+ * 「有作品、没档案」是**合法状态**，不报。
+ */
+export async function collectArtists(): Promise<ArtistEntry[]> {
+  const [albums, profiles] = await Promise.all([getPublishedAlbums(), getPublishedArtists()]);
+
+  const profileByName = new Map<string, Artist>();
+  for (const profile of profiles) {
+    const key = profile.data.name.trim();
+    const existing = profileByName.get(key);
+    if (existing) {
+      console.warn(
+        `[artists] 显示名「${key}」有两份档案：${existing.id} 与 ${profile.id}，只采用前者。`
+      );
+      continue;
+    }
+    profileByName.set(key, profile);
+  }
+
+  const albumsByArtist = new Map<string, Album[]>();
+  for (const album of albums) {
+    const key = album.data.artist.trim();
+    const list = albumsByArtist.get(key);
+    if (list) list.push(album);
+    else albumsByArtist.set(key, [album]);
+  }
+
+  for (const profile of profiles) {
+    const key = profile.data.name.trim();
+    if (!albumsByArtist.has(key)) {
+      console.warn(
+        `[artists] 档案「${key}」（${profile.id}）匹配不到任何专辑的 artist —— ` +
+          `检查是否写错字，或这位歌手的专辑尚未入库。`
+      );
+    }
+  }
+
+  // 反方向：有作品、没档案。这是**合法状态**（页面照常生成），
+  // 但 URL 会退回中文名（一长串 %E6%B0%B8…），所以提示一句。
+  const profiledNames = new Set(profileByName.keys());
+  const missing = [...albumsByArtist.keys()].filter((name) => !profiledNames.has(name));
+  if (missing.length > 0) {
+    console.warn(
+      `[artists] 这些歌手还没有档案：${missing.join('、')}。页面照常生成，` +
+        `但 URL 会用中文名；想要干净的 ASCII 地址，在 src/content/artists/<id>/index.md 补一份档案即可。`
+    );
+  }
+
+  const entries: ArtistEntry[] = [...albumsByArtist.entries()].map(([name, list]) => {
+    const profile = profileByName.get(name);
+    return { id: profile?.id ?? name, name, profile, albums: list, rating: profile?.data.rating };
+  });
+
+  // 有评分者按评分降序在前；无评分者按作品数降序，同数按名字
+  return entries.sort((a, b) => {
+    const ar = a.rating ?? -1;
+    const br = b.rating ?? -1;
+    if (ar !== br) return br - ar;
+    if (a.albums.length !== b.albums.length) return b.albums.length - a.albums.length;
+    return a.name.localeCompare(b.name, 'zh');
+  });
+}
+
+/** 在聚合结果里按 URL 段取一位歌手 */
+export async function getArtistEntry(id: string): Promise<ArtistEntry | undefined> {
+  const entries = await collectArtists();
+  return entries.find((entry) => entry.id === id);
+}
+
+/**
+ * 「正在听」——**手写快照**，不是「此刻正在播放」。
+ * `album` 字段是专辑 id，只用来取封面；对不上就只显示文字，不报错。
+ */
+export async function getNowPlaying() {
+  const albums = await getPublishedAlbums();
+  const album = nowPlayingData.album
+    ? albums.find((item) => item.id === nowPlayingData.album)
+    : undefined;
+
+  return {
+    title: nowPlayingData.title,
+    artist: nowPlayingData.artist,
+    note: nowPlayingData.note as string | undefined,
+    album,
+  };
+}
+
+/**
+ * 网易云累计收听榜（需求方案 §7.6）。
+ *
+ * **外部数据的如实展示**，不接任何 API —— 数字由本人提供截图、人工录入。
+ * 因此展示时**必须**带 `source` 与 `scope` 落款：网易云只统计它自己 App 内的播放，
+ * 不标注就等于把「网易云播放次数」说成「总收听量」。
+ */
+export function getListeningStats() {
+  return listeningStatsData;
 }

@@ -58,7 +58,7 @@ export const SITE = {
  */
 export const NAV: NavItem[] = [
   { label: '文章', href: '/posts' },
-  { label: '专辑', href: '/albums' },
+  { label: '音乐', href: '/music' },
   { label: '归档', href: '/archive' },
   {
     label: '工具',
@@ -109,16 +109,32 @@ export const SOCIAL: { label: string; href: string }[] = [
 ];
 
 /**
+ * 音乐栏目（三期新增，需求方案 §7）。
+ *
+ * `netease` 必须用**带 ID 的干净地址**——App 分享出来的 `163cn.tv/xxxx` 是跳转链，
+ * 会过期（小红书 `xsec_token` 已有先例）。个人主页入口与音乐页的「在网易云找我」共用这一处。
+ *
+ * `intro` 是音乐页开场（播放器块）右侧的页面介绍，**一行一段**；留空数组则整段不显示。
+ */
+export const MUSIC: { netease: string; intro: readonly string[] } = {
+  netease: 'https://music.163.com/#/user/home?id=1956997868',
+  intro: [
+    '听过并想留下几句话的唱片，以及围绕它们的那些人。',
+    '不追新，只记下真正反复听过的。',
+  ],
+};
+
+/**
  * 「关于」页顶部的个人主页按钮。改动链接/文案/顺序只动这里。
  *
- * `icon` 对应 about.astro 里内置的矢量图标（github / xiaohongshu / instagram）；
+ * `icon` 对应 about.astro 里内置的矢量图标（github / xiaohongshu / instagram / netease）；
  * 加新平台时两边都要加一条，漏了会渲染成没有图标的空按钮。
  * 平台主页一律用**不带追踪参数的干净地址**（分享链接里那些 xsec_token / stkn 会过期）。
  */
 export const PROFILES: {
   label: string;
   href: string;
-  icon: 'github' | 'xiaohongshu' | 'instagram';
+  icon: 'github' | 'xiaohongshu' | 'instagram' | 'netease';
 }[] = [
   { label: 'GitHub', href: 'https://github.com/auraduan', icon: 'github' },
   {
@@ -127,6 +143,7 @@ export const PROFILES: {
     icon: 'xiaohongshu',
   },
   { label: 'Instagram', href: 'https://www.instagram.com/linson_duan', icon: 'instagram' },
+  { label: '网易云', href: MUSIC.netease, icon: 'netease' },
 ];
 
 /**

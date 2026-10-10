@@ -2,7 +2,7 @@
 title: "Life Continues..."
 artist: "陈奕迅"
 year: 2006
-cover: "./cover.png"
+cover: "./cover.webp"
 rating: 9.7
 genre: ["粤语"]
 mood: ["深刻", "专注", "香港"]

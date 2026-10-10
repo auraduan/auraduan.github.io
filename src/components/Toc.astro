@@ -35,14 +35,12 @@ const { headings } = Astro.props;
    *   否则会逐次累积。
    */
   (() => {
-    const links = Array.from(
-      document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]')
-    );
+    const links = Array.from(document.querySelectorAll('[data-toc-link]'));
     if (links.length === 0) return;
 
     const entries = links
       .map((link) => ({ link, el: document.getElementById(link.dataset.tocLink ?? '') }))
-      .filter((entry): entry is { link: HTMLAnchorElement; el: HTMLElement } => entry.el !== null);
+      .filter((entry) => entry.el !== null);
 
     if (entries.length === 0) return;
 

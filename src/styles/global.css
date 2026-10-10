@@ -574,6 +574,19 @@ html.theme-transition *::after {
   clip-path: inset(50%);
 }
 
+/* KaTeX 矩阵的呼吸感。
+ *
+ * 矩阵的两种间距都是 KaTeX 在渲染时算好的，但可用的干预手段不同：
+ *   · 行距 → 靠 `\arraystretch`（已在 astro.config.ts 的 macros 里全局设为 1.35）。
+ *     KaTeX 把每一行的纵坐标写成内联 `top:-Xem`，CSS 后改无效。
+ *   · 列距 → KaTeX 在 HTML 侧把列间距写死成 `<span class="arraycolsep" style="width:0.5em">`
+ *     （`\arraycolsep` 只影响 MathML 那套，对视觉无效），所以这里只能 !important 压内联。
+ * 只加宽，不改表结构——`cases` / `aligned` 等数组环境同步受益。
+ */
+.prose-article .katex .arraycolsep {
+  width: 0.7em !important;
+}
+
 /* KaTeX 公式在窄屏上可能溢出，允许横向滚动（§6.5 的可读性要求） */
 .prose-article .katex-display {
   overflow-x: auto;

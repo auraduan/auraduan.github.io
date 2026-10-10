@@ -41,7 +41,9 @@ export default defineConfig({
     // remarkCodeLanguage 给每个代码块补 title=语言名，让标题栏显示语言类型
     // remarkCjkSpacing 在汉字与拉丁字母/数字之间插入细空格（中文排版惯例）
     remarkPlugins: [remarkMath, remarkCodeLanguage, remarkCjkSpacing],
-    rehypePlugins: [rehypeKatex],
+    // \arraystretch 必须在这一层设：KaTeX 会把矩阵每行的纵坐标算成内联 top:Xem，
+    // 事后再用 CSS 改是改不动的（内联样式赢）。1 是 LaTeX 默认值，偏挤。
+    rehypePlugins: [[rehypeKatex, { macros: { '\\arraystretch': '1.35' } }]],
     shikiConfig: {
       wrap: true,
     },

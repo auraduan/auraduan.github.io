@@ -1,0 +1,115 @@
+---
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AlbumCard from '../../components/AlbumCard.astro';
+import { collectArtists, type ArtistEntry } from '../../lib/content';
+
+/**
+ * 一个歌手一页。
+ *
+ * 页面由**专辑自动汇总**产生——没写档案的歌手同样有页面（只是没有头像、评分与简介）。
+ * id 优先取档案目录名（ASCII），没有档案时退回显示名。
+ */
+export async function getStaticPaths() {
+  const artists = await collectArtists();
+  return artists.map((artist) => ({ params: { id: artist.id }, props: { artist } }));
+}
+
+interface Props {
+  artist: ArtistEntry;
+}
+
+const { artist } = Astro.props;
+const { name, profile, albums, rating } = artist;
+
+const avatar = profile?.data.avatar;
+// 档案正文即简介；没写档案就没有这一段
+const profileIntro = profile ? await render(profile) : undefined;
+const ProfileContent = profileIntro?.Content;
+---
+
+<BaseLayout title={name} description={`${name} —— 我听过的 ${albums.length} 张专辑`}>
+  <article class="mx-auto max-w-[980px] px-6 pb-24 pt-20 md:pt-24">
+    <header class="flex flex-col items-start gap-7 sm:flex-row sm:items-center sm:gap-10">
+      {
+        avatar ? (
+          <Image
+            src={avatar}
+            alt={`${name} 的头像`}
+            widths={[192, 384]}
+            sizes="(max-width: 640px) 120px, 160px"
+            class="h-[120px] w-[120px] shrink-0 rounded-card object-cover sm:h-[160px] sm:w-[160px]"
+            loading="eager"
+          />
+        ) : (
+          <div
+            class="flex h-[120px] w-[120px] shrink-0 items-center justify-center rounded-card sm:h-[160px] sm:w-[160px]"
+            style="background-color: var(--surface-alt);"
+            aria-hidden="true"
+          >
+            <span class="text-h1" style="color: var(--ink-muted); opacity: 0.3;">
+              {name.slice(0, 1)}
+            </span>
+          </div>
+        )
+      }
+
+      <div class="min-w-0">
+        <h1 class="text-h1 text-ink">{name}</h1>
+
+        <div class="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2 text-small text-ink-muted">
+          {
+            rating !== undefined && (
+              <span>
+                <span class="font-semibold tabular-nums" style="color: var(--accent);">
+                  {rating.toFixed(1)}
+                </span>
+                <span class="text-caption"> / 10</span>
+              </span>
+            )
+          }
+          <span class="tabular-nums">{albums.length} 张专辑</span>
+        </div>
+
+        {
+          profile?.data.link && (
+            <p class="mt-5">
+              <a
+                href={profile.data.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="tap-area inline-block text-small text-accent hover:underline"
+              >
+                外部主页 ↗<span class="sr-only">（在新标签页打开）</span>
+              </a>
+            </p>
+          )
+        }
+      </div>
+    </header>
+
+    {
+      ProfileContent && (
+        <>
+          <hr class="mt-16 border-line" />
+          <div class="prose-article mt-12" style="max-width: 680px;"><ProfileContent /></div>
+        </>
+      )
+    }
+
+    <section class={ProfileContent ? 'mt-20' : 'mt-14'}>
+      <h2 class="text-h3 text-ink">作品</h2>
+      <div class="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+        {albums.map((album) => <AlbumCard album={album} />)}
+      </div>
+    </section>
+
+    <div class="mt-16">
+      <a href="/artists" class="tap-area inline-block text-small text-accent hover:underline">
+        ← 全部歌手
+      </a>
+    </div>
+  </article>
+</BaseLayout>

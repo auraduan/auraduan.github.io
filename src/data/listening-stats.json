@@ -1,0 +1,16 @@
+{
+  "source": "网易云音乐",
+  "scope": "不含其他平台的收听记录",
+  "updatedAt": "2026-10-10",
+  "tracks": [
+    { "title": "千千阙歌", "artist": "陈慧娴", "plays": 633 },
+    { "title": "夜机", "artist": "陈慧娴", "plays": 416 },
+    { "title": "心淡", "artist": "容祖儿", "plays": 410 },
+    { "title": "傻女", "artist": "陈慧娴", "plays": 261 },
+    { "title": "烟霞", "artist": "容祖儿", "plays": 247 },
+    { "title": "痛爱", "artist": "容祖儿", "plays": 227 },
+    { "title": "跳舞街", "artist": "陈慧娴", "plays": 227 },
+    { "title": "认真", "artist": "黎瑞恩", "plays": 221 },
+    { "title": "讲不出再见", "artist": "谭咏麟", "plays": 213 }
+  ]
+}

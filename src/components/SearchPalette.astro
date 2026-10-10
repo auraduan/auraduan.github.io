@@ -294,60 +294,51 @@ const shortcuts = [
   // 与其它组件解耦的方式：页眉按钮挂 data-search-open，这里统一绑定。
   // data-astro-rerun：视图过渡后面板 DOM 会被替换，脚本需要重新接管。
 
-  type PagefindResult = {
-    url: string;
-    excerpt: string;
-    meta: { title?: string; [k: string]: string | undefined };
-  };
-
-  type PagefindModule = {
-    init?: () => Promise<void>;
-    search: (q: string) => Promise<{ results: { data: () => Promise<PagefindResult> }[] }>;
-  };
-
-  const overlay = document.querySelector<HTMLElement>('[data-search-overlay]');
-  const panel = overlay?.querySelector<HTMLElement>('[data-search-panel]');
-  const input = overlay?.querySelector<HTMLInputElement>('[data-search-input]');
-  const resultsEl = overlay?.querySelector<HTMLElement>('[data-search-results]');
-  const idleEl = overlay?.querySelector<HTMLElement>('[data-search-idle]');
-  const idleHint = overlay?.querySelector<HTMLElement>('[data-search-idle-hint]');
-  const backdrop = overlay?.querySelector<HTMLElement>('[data-search-backdrop]');
+  const overlay = document.querySelector('[data-search-overlay]');
+  const panel = overlay?.querySelector('[data-search-panel]');
+  const input = overlay?.querySelector('[data-search-input]');
+  const resultsEl = overlay?.querySelector('[data-search-results]');
+  const idleEl = overlay?.querySelector('[data-search-idle]');
+  const idleHint = overlay?.querySelector('[data-search-idle-hint]');
+  const backdrop = overlay?.querySelector('[data-search-backdrop]');
 
   if (overlay && panel && input && resultsEl && idleEl && idleHint && backdrop) {
     const IDLE_HINT = '输入关键词，搜索全站文章与专辑。';
     const NO_INDEX_HINT =
       '搜索索引尚未生成——本地开发模式没有索引，运行 npm run build && npm run preview 后可用。';
 
-    let pagefind: PagefindModule | null | undefined; // undefined=未加载, null=加载失败
-    let rows: HTMLElement[] = [];
+    let pagefind; // undefined=未加载, null=加载失败
+    let rows = [];
     let activeIndex = -1;
     let seq = 0; // 竞态防护：过期的异步响应直接丢弃
-    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-    let closeTimer: ReturnType<typeof setTimeout> | undefined;
-    let lastTrigger: HTMLElement | null = null;
+    let debounceTimer;
+    let closeTimer;
+    let lastTrigger = null;
     let prevOverflow = '';
 
     const isOpen = () => !overlay.hasAttribute('hidden');
 
     /** 按 URL 前缀分组。与 §7「结果按类型分组」对应。 */
-    const groupOf = (url: string) => {
+    const groupOf = (url) => {
       if (url.startsWith('/posts/')) return '文章';
       if (url.startsWith('/albums/')) return '专辑';
       return '页面';
     };
 
-    async function ensurePagefind(): Promise<PagefindModule | null> {
+    async function ensurePagefind() {
       if (pagefind !== undefined) return pagefind;
-      // dev 下 Vite 会把动态 import 拦进自己的管线并给 public 文件加 ?import
+      // dev server 下 Vite 会把动态 import 拦进自己的管线并给 public 文件加 ?import
       // → 必定 500（坑位 12 的 dev 面）。直接降级，省得控制台留红错。
-      if (import.meta.env.DEV) {
+      // ⚠ 判据用 `@vite/client`（dev server 独有），**不能用 location.hostname** ——
+      //    `npm run preview` 同样跑在 localhost，那样会把本地预览的搜索也一起禁掉。
+      if (document.querySelector('script[src*="@vite/client"]')) {
         pagefind = null;
         return pagefind;
       }
       try {
         // 变量字面量让 Vite 跳过静态分析，构建时原样保留运行时请求。
         const url = '/pagefind/pagefind.js';
-        const mod = (await import(/* @vite-ignore */ url)) as PagefindModule;
+        const mod = (await import(/* @vite-ignore */ url));
         if (typeof mod.init === 'function') await mod.init();
         pagefind = mod;
       } catch (e) {
@@ -356,31 +347,31 @@ const shortcuts = [
       return pagefind;
     }
 
-    function showIdle(hint: string) {
-      resultsEl!.hidden = true;
-      resultsEl!.innerHTML = '';
-      idleEl!.hidden = false;
-      idleHint!.textContent = hint;
+    function showIdle(hint) {
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = '';
+      idleEl.hidden = false;
+      idleHint.textContent = hint;
       rows = [];
       activeIndex = -1;
-      input!.removeAttribute('aria-activedescendant');
+      input.removeAttribute('aria-activedescendant');
     }
 
-    function setActive(index: number) {
+    function setActive(index) {
       rows.forEach((row, i) => {
         const active = i === index;
         row.classList.toggle('is-active', active);
         row.setAttribute('aria-selected', String(active));
         if (active) {
           row.id = 'search-row-active';
-          input!.setAttribute('aria-activedescendant', 'search-row-active');
+          input.setAttribute('aria-activedescendant', 'search-row-active');
           row.scrollIntoView({ block: 'nearest' });
         }
       });
       activeIndex = index;
     }
 
-    function buildRow(item: PagefindResult, rowIndex: number): HTMLElement {
+    function buildRow(item, rowIndex) {
       const row = document.createElement('a');
       row.href = item.url;
       row.className = 'search-row';
@@ -412,7 +403,7 @@ const shortcuts = [
 
     async function runSearch() {
       const my = ++seq;
-      const query = input!.value.trim();
+      const query = input.value.trim();
 
       if (!query) {
         showIdle(IDLE_HINT);
@@ -432,28 +423,28 @@ const shortcuts = [
       const items = await Promise.all(search.results.slice(0, 20).map((r) => r.data()));
       if (my !== seq) return;
 
-      resultsEl!.innerHTML = '';
+      resultsEl.innerHTML = '';
       rows = [];
 
       if (items.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'search-empty';
         empty.textContent = `没有找到与「${query}」相关的内容`;
-        resultsEl!.appendChild(empty);
-        resultsEl!.hidden = false;
-        idleEl!.hidden = true;
+        resultsEl.appendChild(empty);
+        resultsEl.hidden = false;
+        idleEl.hidden = true;
         activeIndex = -1;
-        input!.removeAttribute('aria-activedescendant');
+        input.removeAttribute('aria-activedescendant');
         return;
       }
 
       // 按 文章 → 专辑 → 页面 分组，组内保持 Pagefind 的相关性排序
       const order = ['文章', '专辑', '页面'];
-      const grouped = new Map<string, PagefindResult[]>();
+      const grouped = new Map();
       for (const item of items) {
         const g = groupOf(item.url);
         if (!grouped.has(g)) grouped.set(g, []);
-        grouped.get(g)!.push(item);
+        grouped.get(g).push(item);
       }
 
       for (const group of order) {
@@ -463,32 +454,32 @@ const shortcuts = [
         const label = document.createElement('div');
         label.className = 'search-group-label';
         label.textContent = group;
-        resultsEl!.appendChild(label);
+        resultsEl.appendChild(label);
 
         for (const item of list) {
           const row = buildRow(item, rows.length);
-          resultsEl!.appendChild(row);
+          resultsEl.appendChild(row);
           rows.push(row);
         }
       }
 
-      resultsEl!.hidden = false;
-      idleEl!.hidden = true;
+      resultsEl.hidden = false;
+      idleEl.hidden = true;
       setActive(0);
     }
 
-    function open(trigger?: HTMLElement) {
+    function open(trigger) {
       if (isOpen()) return;
       lastTrigger = trigger || document.activeElement;
       if (closeTimer) clearTimeout(closeTimer);
-      overlay!.hidden = false;
+      overlay.hidden = false;
       // 下一帧加类，保证过渡能播（hidden→display:flex 同帧不触发 transition）
-      requestAnimationFrame(() => overlay!.classList.add('is-open'));
-      input!.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(() => overlay.classList.add('is-open'));
+      input.setAttribute('aria-expanded', 'true');
       prevOverflow = document.documentElement.style.overflow;
       document.documentElement.style.overflow = 'hidden'; // 锁底页滚动
-      input!.focus();
-      input!.select();
+      input.focus();
+      input.select();
 
       // 后台预加载搜索索引：等用户真敲字时通常已就绪，省掉首次搜索的等待。
       // （正因为等待几乎为零，这里刻意不做「加载中」动画。）
@@ -497,28 +488,28 @@ const shortcuts = [
 
     function close() {
       if (!isOpen()) return;
-      overlay!.classList.remove('is-open');
-      input!.setAttribute('aria-expanded', 'false');
+      overlay.classList.remove('is-open');
+      input.setAttribute('aria-expanded', 'false');
       document.documentElement.style.overflow = prevOverflow;
       // 等收场动画播完再隐藏；reduced-motion 下时长被压到 0.01ms，这里只是兜底
       closeTimer = setTimeout(() => {
-        overlay!.hidden = true;
-        resultsEl!.hidden = true;
-        resultsEl!.innerHTML = '';
+        overlay.hidden = true;
+        resultsEl.hidden = true;
+        resultsEl.innerHTML = '';
         rows = [];
         activeIndex = -1;
-        input!.value = '';
+        input.value = '';
       }, 200);
       const trigger = lastTrigger;
       if (trigger && 'focus' in trigger) trigger.focus();
     }
 
     // —— 入口绑定 ——
-    for (const btn of document.querySelectorAll<HTMLElement>('[data-search-open]')) {
+    for (const btn of document.querySelectorAll('[data-search-open]')) {
       btn.addEventListener('click', () => open(btn));
     }
     backdrop.addEventListener('click', close);
-    for (const el of overlay.querySelectorAll<HTMLElement>('[data-search-close]')) {
+    for (const el of overlay.querySelectorAll('[data-search-close]')) {
       el.addEventListener('click', close);
     }
 
@@ -566,7 +557,7 @@ const shortcuts = [
     // 极简焦点陷阱：Tab 只在面板内循环
     panel.addEventListener('keydown', (e) => {
       if (e.key !== 'Tab') return;
-      const focusables = panel.querySelectorAll<HTMLElement>(
+      const focusables = panel.querySelectorAll(
         'a[href], button:not([disabled]), input'
       );
       if (focusables.length === 0) return;

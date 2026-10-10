@@ -3,7 +3,15 @@ import { getCollection, render } from 'astro:content';
 import { Image } from 'astro:assets';
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { formatDate, getPublishedPosts, type Album } from '../../lib/content';
+import AlbumCard from '../../components/AlbumCard.astro';
+import albumColors from '../../data/album-colors.json';
+import {
+  collectArtists,
+  formatDate,
+  getPublishedAlbums,
+  getPublishedPosts,
+  type Album,
+} from '../../lib/content';
 
 export async function getStaticPaths() {
   const albums = await getCollection('albums', ({ data }) => !data.draft);
@@ -18,13 +26,34 @@ const { album } = Astro.props;
 const { data } = album;
 const { Content } = await render(album);
 
+/**
+ * 封面主色（§7.3.1）：**只在这一页**做一层极淡的径向光晕。
+ * 构建时由 `scripts/extract-album-colors.mjs` 提取（prebuild 钩子自动跑），
+ * 产物是静态 JSON —— 零运行时依赖。取不到就整块不显示，不留空壳。
+ */
+const albumColor = (albumColors as Record<string, string>)[album.id] ?? null;
+
 // 反向关联：哪些文章挂在这张专辑上
 const posts = await getPublishedPosts();
 const linked = posts.filter((post) => post.data.album === album.id);
+
+// 双向导流：这位歌手的其他作品（§7.4）。
+// 这条链不通，歌手页与专辑页就只是两个互不相干的列表。
+const siblings = (await getPublishedAlbums()).filter(
+  (item) => item.data.artist === data.artist && item.id !== album.id
+);
+// 歌手页的 URL 段要取聚合结果里的 id（有档案时是 ASCII 目录名，不是显示名）
+const artistEntry = (await collectArtists()).find((entry) => entry.name === data.artist);
 ---
 
 <BaseLayout title={`${data.title} — ${data.artist}`} description={`${data.artist}《${data.title}》听后感`}>
-  <article class="mx-auto max-w-[980px] px-6 pb-24 pt-20 md:pt-24">
+  <article
+    class="album-page relative mx-auto max-w-[980px] px-6 pb-24 pt-20 md:pt-24"
+    style={albumColor ? `--album-color: ${albumColor};` : undefined}
+  >
+    {/* 极淡的环境色：只是「隐约有色」，不参与信息层级（§7.3.1） */}
+    {albumColor && <div class="album-glow" aria-hidden="true" />}
+
     <div class="flex flex-col gap-10 sm:flex-row sm:gap-12">
       <div class="w-full shrink-0 sm:w-[320px]" data-reveal>
         <!--
@@ -125,6 +154,29 @@ const linked = posts.filter((post) => post.data.album === album.id);
     </div>
 
     {
+      siblings.length > 0 && (
+        <section class="mx-auto mt-20 max-w-[680px] border-t border-line pt-10">
+          <h2 class="text-h3 text-ink">{data.artist} 的其他作品</h2>
+          <div class="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3">
+            {siblings.map((item) => (
+              <AlbumCard album={item} />
+            ))}
+          </div>
+          {artistEntry && (
+            <p class="mt-8">
+              <a
+                href={`/artists/${artistEntry.id}`}
+                class="tap-area inline-block text-small text-accent hover:underline"
+              >
+                看 {data.artist} 的全部作品 →
+              </a>
+            </p>
+          )}
+        </section>
+      )
+    }
+
+    {
       linked.length > 0 && (
         <section class="mx-auto mt-20 max-w-[680px] border-t border-line pt-10">
           <h2 class="text-h3 text-ink">写过的相关文章</h2>
@@ -152,7 +204,7 @@ const linked = posts.filter((post) => post.data.album === album.id);
 <script data-astro-rerun>
   // 唱片机开关：class 切在按钮上，样式与动效全在下方 <style> 里
   // data-astro-rerun：视图过渡后按钮是新的，需要重新接管点击
-  const turntable = document.querySelector<HTMLElement>('[data-vinyl-toggle]');
+  const turntable = document.querySelector('[data-vinyl-toggle]');
   turntable?.addEventListener('click', () => {
     const playing = turntable.classList.toggle('is-playing');
     turntable.setAttribute('aria-pressed', String(playing));
@@ -268,4 +320,36 @@ const linked = posts.filter((post) => post.data.album === album.id);
 
   /* prefers-reduced-motion 由 global.css 的全局规则接管：时长压到 0.01ms，
      黑胶不会持续旋转，只会瞬间到达目标状态 */
+
+  /*
+    专辑主色光晕（§7.3.1）。
+    `isolation: isolate` 把 z-index:-1 关在 article 内部——否则它会跑到 body
+    背景后面，整块看不见。高度固定：渐变若按元素高度摊开（这一页很长），
+    会散得没有形状。不透明度压得很低，它只是环境色，不参与信息层级。
+  */
+  .album-page {
+    isolation: isolate;
+  }
+
+  .album-glow {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 620px;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      68% 58% at 26% 16%,
+      color-mix(in srgb, var(--album-color) 16%, transparent),
+      transparent 72%
+    );
+  }
+
+  /* 同样的透明度在深底上会看不出来，深色主题单独提一档 */
+  :global(html.dark) .album-glow {
+    background: radial-gradient(
+      68% 58% at 26% 16%,
+      color-mix(in srgb, var(--album-color) 26%, transparent),
+      transparent 72%
+    );
+  }
 </style>

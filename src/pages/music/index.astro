@@ -1,0 +1,457 @@
+---
+import { Image } from 'astro:assets';
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import AlbumCard from '../../components/AlbumCard.astro';
+import ArtistCard from '../../components/ArtistCard.astro';
+import { collectArtists, getListeningStats, getNowPlaying, getPublishedAlbums } from '../../lib/content';
+import { MUSIC } from '../../site.config';
+
+/**
+ * 音乐主页（需求方案 §7.2–7.7）。
+ *
+ * 结构：**播放器开场 → 统计表 → 封面网格（+ 随机抽一张）→ 歌手一排 → 收听榜 → 网易云入口**。
+ *
+ * 2026-10-10 改版：原「精选花园」被推翻——花园的「错落」只能靠尺寸差实现，
+ * 而专辑封面实测**全是 1:1**（11 张，最大偏差 1.014），非方格子必然把封面裁掉一截
+ * （§7.3 有完整推演）。现在**开场交给「正在转的黑胶」，陈列交给整齐网格**。
+ */
+const albums = await getPublishedAlbums();
+const artists = await collectArtists();
+const nowPlaying = await getNowPlaying();
+const stats = getListeningStats();
+
+// 开场封面：来自 now-playing.json 的 album 字段（填专辑 id，自动取封面）
+const nowPlayingCover = nowPlaying.album?.data.cover;
+const hasNowPlaying = Boolean(nowPlaying.title);
+
+/* ---- 统计表：口径必须与 /albums 的统计条同源同算法，否则同一天两个页面数字会打架 ---- */
+const ratedAlbums = albums.filter((album) => album.data.rating !== undefined);
+const avgRating =
+  ratedAlbums.length > 0
+    ? (ratedAlbums.reduce((sum, album) => sum + (album.data.rating ?? 0), 0) / ratedAlbums.length).toFixed(1)
+    : '—';
+
+/* ---- 封面网格：**全部专辑**（不再区分精选与否） ----
+ * 「随机抽一张」的 URL 列表在构建时写进 data 属性，点击时纯前端随机
+ * —— 与 /posts 的「随便逛逛」同一手法，零依赖、零接口。
+ */
+const albumUrls = albums.map((album) => `/albums/${album.id}`);
+
+/* ---- 歌手一排 ---- */
+const shelfArtists = artists.slice(0, 4);
+---
+
+<BaseLayout title="音乐" description="听过、想记下来的东西">
+  {
+    hasNowPlaying ? (
+      /* ① 播放器开场 —— 全宽、占首屏。
+         「正在听」的升级形态：同一份手写快照，从一行小字变成一个开场。
+         额外好处：这块是全宽的，黑胶往右探出 64px 也不用跟邻居抢空间。 */
+      <section class="player relative" data-player>
+        <div class="mx-auto grid max-w-[980px] items-center gap-12 px-6 sm:grid-cols-[320px_1fr] sm:gap-24">
+          {nowPlayingCover && (
+            <div class="mx-auto w-full max-w-[280px] sm:mx-0 sm:max-w-none">
+              <div class="player-turntable relative">
+                <Image
+                  src={nowPlayingCover}
+                  alt=""
+                  widths={[320, 640]}
+                  sizes="(max-width: 640px) 280px, 320px"
+                  class="relative z-10 w-full rounded-card object-cover"
+                  loading="eager"
+                />
+                {/* 黑胶默认就在转：这块的内容是「我正在听」，正在听的黑胶当然一直在转。
+                    与专辑详情页那台「点击才转的玩具」刻意区分。 */}
+                <span class="vinyl" aria-hidden="true">
+                  <span class="vinyl-disc">
+                    <Image
+                      src={nowPlayingCover}
+                      alt=""
+                      widths={[160]}
+                      sizes="160px"
+                      class="vinyl-label"
+                      loading="lazy"
+                    />
+                    <span class="vinyl-hole" />
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div class="min-w-0 text-center sm:text-left">
+            <p class="text-caption uppercase tracking-widest text-ink-muted">正在听</p>
+            <h1 class="mt-3 text-h2 text-ink sm:text-h1">{nowPlaying.title}</h1>
+            <p class="mt-3 text-small text-ink-muted">{nowPlaying.artist}</p>
+            {nowPlaying.note && <p class="mt-5 text-small text-ink">{nowPlaying.note}</p>}
+
+            {/* 页面介绍：由 site.config.ts → MUSIC.intro 提供，一行一段；空数组则整段不出现 */}
+            {
+              MUSIC.intro.length > 0 && (
+                <div class="mt-10 space-y-1.5 border-t border-line pt-6 sm:mt-14">
+                  {MUSIC.intro.map((line) => (
+                    <p class="text-small leading-relaxed text-ink-muted">{line}</p>
+                  ))}
+                </div>
+              )
+            }
+          </div>
+        </div>
+
+        {/* 下滑引导：这一屏占满，不给线索的话访客可能以为这就是全部 */}
+        <a href="#music-stats" class="player-hint" data-scroll-hint aria-label="继续往下看">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M6 9.5 12 15.5 18 9.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
+      </section>
+    ) : (
+      <PageHeader title="音乐" description="听过并想留下几句话的唱片，以及围绕它们的那些人。" />
+    )
+  }
+
+  <div class="mx-auto max-w-[980px] px-6 pb-24">
+    <!-- ② 统计表 -->
+    {
+      albums.length > 0 && (
+        <div id="music-stats" class="grid grid-cols-3 gap-6 rounded-card border border-line p-6">
+          <div>
+            <p class="text-h2 tabular-nums text-ink">{albums.length}</p>
+            <p class="mt-1 text-caption text-ink-muted">张专辑</p>
+          </div>
+          <div>
+            <p class="text-h2 tabular-nums text-ink">{artists.length}</p>
+            <p class="mt-1 text-caption text-ink-muted">位歌手</p>
+          </div>
+          <div>
+            <p class="text-h2 tabular-nums text-ink">{avgRating}</p>
+            <p class="mt-1 text-caption text-ink-muted">平均评分</p>
+          </div>
+        </div>
+      )
+    }
+
+    <!-- ③ 封面网格：整齐排列，取全部专辑。错落交给开场，这里只负责「好逛」 -->
+    {
+      albums.length > 0 && (
+        <section class="mt-16" data-reveal>
+          <div class="mb-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
+            <h2 class="text-h3 text-ink">专辑</h2>
+            <div class="flex items-center gap-6">
+              <button
+                type="button"
+                data-random-album
+                data-random-urls={JSON.stringify(albumUrls)}
+                class="tap-area cursor-pointer border-0 bg-transparent p-0 text-small text-ink-muted hover:text-accent"
+              >
+                随机抽一张
+              </button>
+              <a href="/albums" class="tap-area text-small text-accent hover:underline">
+                查看全部 →
+              </a>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+            {albums.map((album) => (
+              <AlbumCard album={album} />
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- ④ 歌手一排 -->
+    {
+      shelfArtists.length > 0 && (
+        <section class="mt-20" data-reveal>
+          <div class="mb-8 flex items-baseline justify-between gap-4">
+            <h2 class="text-h3 text-ink">歌手</h2>
+            <a href="/artists" class="tap-area text-small text-accent hover:underline">
+              查看全部 →
+            </a>
+          </div>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+            {shelfArtists.map((artist) => (
+              <ArtistCard artist={artist} />
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- ⑤ 收听榜：外部数据的如实展示，落款不能省 -->
+    {
+      stats.tracks.length > 0 && (
+        <section class="mt-20 border-t border-line pt-12" data-reveal>
+          <h2 class="text-h3 text-ink">听得最多的歌</h2>
+
+          <ol class="mt-8 space-y-3">
+            {stats.tracks.map((track, index) => (
+              <li class="flex items-baseline gap-4">
+                <span class="w-6 shrink-0 text-caption tabular-nums text-ink-muted">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span class="min-w-0 flex-1 truncate text-small text-ink">
+                  {track.title}
+                  <span class="text-ink-muted"> — {track.artist}</span>
+                </span>
+                <span class="shrink-0 text-caption tabular-nums text-ink-muted">{track.plays}</span>
+              </li>
+            ))}
+          </ol>
+
+          <p class="mt-8 text-caption leading-relaxed text-ink-muted">
+            数据来自{stats.source} · 截至 {stats.updatedAt}
+            <br />
+            {stats.scope}
+          </p>
+        </section>
+      )
+    }
+
+    <!-- ⑥ 网易云入口：纯外链，不做嵌入 -->
+    {
+      MUSIC.netease && (
+        <p class="mt-16">
+          <a
+            href={MUSIC.netease}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="tap-area inline-block text-small text-accent hover:underline"
+          >
+            在网易云找我 ↗<span class="sr-only">（在新标签页打开）</span>
+          </a>
+        </p>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<script data-astro-rerun>
+  /**
+   * 两件事都必须在视图过渡后重新接管（data-astro-rerun 让脚本随导航重跑）。
+   *
+   * ⚠ window / document 级监听要有幂等守卫，否则每次导航都会叠一层；
+   * ⚠ 带 data-astro-rerun 的脚本**不经 esbuild 转译**，绝不能写 TypeScript 语法
+   *   （`window as unknown as {...}` 会原样进浏览器 → 语法错误 → 整块脚本作废）。
+   */
+  (() => {
+    const scope = /** @type {any} */ (window);
+
+    // ① 「随机抽一张」：事件委托绑在 document 上，导航后的新按钮才接得住点击
+    if (!scope.__musicRandomBound) {
+      scope.__musicRandomBound = true;
+      document.addEventListener('click', (e) => {
+        const el = e.target;
+        const btn = el && el.closest ? el.closest('[data-random-album]') : null;
+        if (!btn) return;
+
+        let urls = [];
+        try {
+          urls = JSON.parse(btn.getAttribute('data-random-urls') || '[]');
+        } catch (err) {
+          urls = [];
+        }
+        if (urls.length > 0) {
+          window.location.href = urls[Math.floor(Math.random() * urls.length)];
+        }
+      });
+    }
+
+    // ② 下滑引导：滚过首屏后淡出（回调里每次重新取元素——导航后节点是新的）
+    if (!scope.__musicHintBound) {
+      scope.__musicHintBound = true;
+      window.addEventListener(
+        'scroll',
+        () => {
+          const hint = document.querySelector('[data-scroll-hint]');
+          if (!hint) return;
+          const player = hint.closest('.player');
+          const height = player ? player.offsetHeight : window.innerHeight;
+          hint.classList.toggle('is-hidden', window.scrollY > height * 0.55);
+        },
+        { passive: true }
+      );
+    }
+
+    // 首次进入（含视图过渡后）同步一次状态
+    const hint = document.querySelector('[data-scroll-hint]');
+    if (hint) {
+      const player = hint.closest('.player');
+      const height = player ? player.offsetHeight : window.innerHeight;
+      hint.classList.toggle('is-hidden', window.scrollY > height * 0.55);
+    }
+  })();
+</script>
+
+<style>
+  /* ============ ① 播放器开场 ============ */
+
+  /* 占满首屏（扣掉固定页眉）。padding-top 用来避开页眉，所以减掉时也要算上留白。
+     ⚠ 封顶 780px：超大视口上不加盖的话，这一屏会空旷到像出了错。 */
+  .player {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: calc(100vh - var(--header-h));
+    padding-top: 5rem;
+    padding-bottom: 6rem;
+  }
+
+  @supports (height: 100svh) {
+    .player {
+      min-height: min(calc(100svh - var(--header-h)), 780px);
+    }
+  }
+
+  /* 黑胶：藏在封面正后方，右缘与封面右缘对齐（宽度 92% < 100%，默认完全被盖住） */
+  .vinyl {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 92%;
+    aspect-ratio: 1;
+    transform: translate(0, -50%);
+    z-index: 0; /* 低于封面（z-10），只露出右下月牙 */
+    pointer-events: none;
+  }
+
+  /*
+    纯 CSS 黑胶（与专辑详情页同一套）。
+    盘面必须是**非旋转对称**的——同心纹路无论怎么转都看不出，
+    转动可见性全靠 conic 的**四道彗尾亮痕**撑着（亮头 0.22 + 60° 渐隐尾，每 90° 一道）。
+  */
+  .vinyl-disc {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background:
+      conic-gradient(
+        from 0deg,
+        rgba(255, 255, 255, 0.22) 0deg 3deg,
+        rgba(255, 255, 255, 0.06) 3deg 60deg,
+        transparent 60deg 90deg,
+        rgba(255, 255, 255, 0.22) 90deg 93deg,
+        rgba(255, 255, 255, 0.06) 93deg 150deg,
+        transparent 150deg 180deg,
+        rgba(255, 255, 255, 0.22) 180deg 183deg,
+        rgba(255, 255, 255, 0.06) 183deg 240deg,
+        transparent 240deg 270deg,
+        rgba(255, 255, 255, 0.22) 270deg 273deg,
+        rgba(255, 255, 255, 0.06) 273deg 330deg,
+        transparent 330deg 360deg
+      ),
+      repeating-radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 255, 255, 0.09) 0 1px,
+        transparent 1px 3.6px
+      ),
+      radial-gradient(circle at 50% 50%, #1b1b20 0 34%, #0a0a0c 34% 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+      0 8px 24px rgba(0, 0, 0, 0.35);
+    /* 默认就在转 —— 比详情页（1.8s）慢一倍，它是持续的背景动效，不该抢注意力 */
+    animation: vinyl-spin 3.6s linear infinite;
+  }
+
+  @keyframes vinyl-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* 中心标签：专辑封面缩略图裁成圆 */
+  .vinyl-label {
+    width: 38%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+
+  /* 轴孔：透出页面背景色 */
+  .vinyl-hole {
+    position: absolute;
+    width: 5%;
+    min-width: 6px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--surface);
+  }
+
+  /* 窄屏：黑胶只往下探出（不横向伸出，否则会撑出横向溢出），露出下月牙 */
+  @media (max-width: 639px) {
+    .vinyl {
+      transform: translate(0, calc(-50% + 32px));
+    }
+  }
+
+  /* sm+：向右下探出 —— 两栏 gap 有 96px，横向 80px 留 16px 余量，不碰文字栏。
+     横向给得比纵向多，看起来才像「唱片从封套右侧抽出来」，而不是整体往下掉。 */
+  @media (min-width: 640px) {
+    .vinyl {
+      transform: translate(80px, calc(-50% + 44px));
+    }
+  }
+
+  /* ============ 下滑引导 ============ */
+
+  .player-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 1.75rem;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    color: var(--ink-muted);
+    border-radius: 999px;
+    transition:
+      opacity 400ms ease,
+      color 200ms ease;
+    animation: hint-bob 2s ease-in-out infinite;
+  }
+
+  .player-hint:hover {
+    color: var(--ink);
+  }
+
+  .player-hint.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 注意 keyframes 里要带上 translateX(-50%)，否则会覆盖掉居中 */
+  @keyframes hint-bob {
+    0%,
+    100% {
+      transform: translate(-50%, 0);
+    }
+    50% {
+      transform: translate(-50%, 6px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vinyl-disc {
+      animation: none;
+    }
+
+    .player-hint {
+      animation: none;
+      transform: translate(-50%, 0);
+    }
+  }
+</style>

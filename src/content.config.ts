@@ -86,4 +86,36 @@ const albums = defineCollection({
     }),
 });
 
-export const collections = { posts, albums };
+/**
+ * 歌手档案。每份一个目录：
+ *   src/content/artists/<id>/index.md
+ *   src/content/artists/<id>/avatar.png   （可选）
+ * 目录名即 id，也就是 /artists/<id> 的 URL。
+ *
+ * ⚠ 关键设计：聚合专辑靠 frontmatter 的 `name` 去匹配专辑的 `artist`（字符串精确相等），
+ * **不是**靠目录名 —— 否则现有 11 张专辑的 artist 全得改写成 URL 用的 id。
+ * 代价是「陈慧娴 / 陈慧嫻」这类错别字会**静默失配**，所以 lib/content.ts 里有构建时校验兜底。
+ *
+ * 档案是**可选**的：没写档案的歌手也会由专辑自动汇总出页面，只是卡片朴素一些（无头像、无评分）。
+ */
+const artists = defineCollection({
+  loader: glob({
+    pattern: '**/index.{md,mdx}',
+    base: './src/content/artists',
+    generateId: ({ entry }) => entry.replace(/\/index\.mdx?$/, '').replace(/\.mdx?$/, ''),
+  }),
+  schema: ({ image }) =>
+    z.object({
+      /** 显示名。必须与专辑 frontmatter 的 artist 完全一致，否则聚合不上 */
+      name: z.string(),
+      /** 头像，可选。不填则歌手墙显示占位块 */
+      avatar: image().optional(),
+      /** 0–10，我的评分（与专辑同一把尺子） */
+      rating: z.number().min(0).max(10).optional(),
+      /** 外部主页，比如网易云歌手页 */
+      link: z.string().optional(),
+      draft: z.boolean().default(false),
+    }),
+});
+
+export const collections = { posts, albums, artists };
