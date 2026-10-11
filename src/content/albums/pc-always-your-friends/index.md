@@ -4,6 +4,18 @@ artist: "陈慧娴"
 year: 1989
 type: LP
 language: "粤语"
+tracks:
+  - "千千阕歌"
+  - "最后的缠绵"
+  - "虚假浪漫"
+  - "夜机"
+  - "Dancing Boy"
+  - "披星独行"
+  - "冰点"
+  - "忧郁，你好"
+  - "真情流露"
+  - "亲吻"
+  - "应该不应该"
 cover: "./cover.png"
 rating: 9.9
 mood: ["深夜", "经典"]

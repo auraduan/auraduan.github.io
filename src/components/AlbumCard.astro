@@ -73,20 +73,8 @@ const { data, id } = album;
 </a>
 
 <style>
-  /*
-    发行形态标记（Live / EP / 精选 / 单曲）。
-    中性色 —— 全站只有一个强调色，它的语义是「可点 / 当前页」，
-    标记用它会被误读成可点。用淡底 + 次要色，靠形状与位置被识别。
-  */
-  .album-type {
-    flex-shrink: 0;
-    padding: 0 6px;
-    border-radius: 4px;
-    background-color: var(--surface-alt);
-    color: var(--ink-muted);
-    font-size: 11px;
-    line-height: 1.6;
-  }
+  /* .album-type（发行形态标记）已提升到 global.css —— 文章页的「相关专辑」
+     也用同一枚标记，一处定义两处使用。 */
 
   /* 黑胶唱片墙：hover 时整张抬起 + 翻转看背面 */
   .album-lift {

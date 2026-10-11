@@ -11,6 +11,7 @@ import {
   adjacentPosts,
   formatDate,
   formatDateCN,
+  getPostAlbums,
   getPublishedPosts,
   readingTime,
   relatedPosts,
@@ -37,6 +38,10 @@ const related = relatedPosts(post, all);
 
 // 相邻文章：按时间轴取前后各一篇。prev = 更早的一篇，next = 更新的一篇
 const { prev, next } = adjacentPosts(post, all);
+
+// 关联专辑：frontmatter 填了 album 才有出口。可以是一张，也可以是一组
+// （如一首单曲 + 它后来被收录的专辑）；对不上的 id 会被跳过（只 warn）
+const postAlbums = await getPostAlbums(post);
 
 // 目录只收二、三级标题。
 // 排除 GFM 脚注区自动生成的 "Footnotes" 标题 —— 它是给屏幕阅读器用的，
@@ -186,6 +191,53 @@ const ogImage = data.cover
         )
       }
     </div>
+
+    <!--
+      关联专辑：文章讲的是哪张（或哪几张）专辑，从这里出去。
+      与专辑页的「写过的相关文章」配成双向 —— 只做单向的话，读者看完文章
+      没有办法走到专辑，导流就断在半路。
+
+      支持多张：一首歌既有自己的单曲条目，又后来被收进某张专辑时，
+      两张都列出来，顺序照 frontmatter 里写的。整行可点（外壳是 <a>），
+      热区足够大；无关联时整块不渲染，不留空壳。
+    -->
+    {
+      postAlbums.length > 0 && (
+        <section class="mt-16 max-w-[680px] border-t border-line pt-8">
+          <p class="text-caption text-ink-muted">相关专辑</p>
+          <ul class="mt-4 space-y-4">
+            {postAlbums.map((item) => (
+              <li>
+                <a href={`/albums/${item.id}`} class="group flex items-center gap-4">
+                  <Image
+                    src={item.data.cover}
+                    alt={`${item.data.title} 封面`}
+                    widths={[128]}
+                    sizes="64px"
+                    class="h-16 w-16 shrink-0 rounded-card-sm object-cover"
+                    loading="lazy"
+                  />
+                  <span class="min-w-0">
+                    {/* LP 是常态，不显示标记；单曲 / EP / Live / 精选 才标出来 */}
+                    <span class="flex min-w-0 items-center gap-1.5">
+                      {item.data.type && item.data.type !== 'LP' && (
+                        <span class="album-type">{item.data.type}</span>
+                      )}
+                      <span class="truncate text-body text-ink transition-colors group-hover:text-accent">
+                        {item.data.title}
+                      </span>
+                    </span>
+                    <span class="mt-0.5 block text-caption text-ink-muted">
+                      {item.data.artist} · {item.data.year}
+                    </span>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
 
     <!--
       相邻文章：接着读的入口，紧贴正文。语义按时间轴——「上一篇」= 更早、「下一篇」= 更新，

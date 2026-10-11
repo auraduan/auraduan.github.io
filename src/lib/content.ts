@@ -6,6 +6,22 @@ import nowPlayingData from '../data/now-playing.json';
 export type Post = CollectionEntry<'posts'>;
 export type Album = CollectionEntry<'albums'>;
 
+/**
+ * 内容校验提示：**同一条消息只出现一次**。
+ *
+ * 为什么需要它：`collectArtists()` 这类聚合函数是**按页面**调用的 —— 十几张专辑
+ * 就调十几次，于是同一句「这些歌手还没有档案」会在构建日志里刷十几遍，
+ * 真正的问题反而被淹掉。内容校验是**构建级**的信息，说一次就够。
+ *
+ * 按消息文本去重（消息里已含具体的 id / 名字），所以不同问题仍然各自可见。
+ */
+const warnedMessages = new Set<string>();
+function warnOnce(message: string): void {
+  if (warnedMessages.has(message)) return;
+  warnedMessages.add(message);
+  console.warn(message);
+}
+
 /** 所有对外可见的文章，按发布时间倒序。草稿已被过滤。 */
 export async function getPublishedPosts(): Promise<Post[]> {
   const posts = await getCollection('posts', ({ data }) => !data.draft);
@@ -20,6 +36,80 @@ export async function getPublishedAlbums(): Promise<Album[]> {
     const bt = b.data.listenedAt?.valueOf() ?? new Date(b.data.year, 0, 1).valueOf();
     return bt - at;
   });
+}
+
+/**
+ * 专辑的曲目表，**归一成「分节」数组**，每节形如 `{ disc?, items }`。
+ *
+ * 为什么是分节而不是拍平：
+ *   - 单碟专辑 → 只有一节、`disc` 为空 → 页面就渲染成一路编号到底（与以前一样）
+ *   - 多碟专辑 → 每碟一节、`disc` 是碟名 → 页面在节间画分隔线，**编号按碟重新起算**
+ *     （唱片上本来就是这么编的，拍平会丢掉这个信息）
+ *
+ * frontmatter 里三种写法都接受（纯字符串 / 带 note 的对象 / `{disc, tracks}` 分组，可混用，
+ * 见 content.config.ts），所有消费方都走这里，别直接读 `album.data.tracks`。
+ */
+export type TrackSection = {
+  /** 碟名（如 "CD 1"）。单碟专辑没有这一项 */
+  disc?: string;
+  items: { title: string; note?: string }[];
+};
+
+export function tracksOf(album: Album): TrackSection[] {
+  const normalize = (item: string | { title: string; note?: string }) =>
+    typeof item === 'string' ? { title: item } : item;
+
+  const sections: TrackSection[] = [];
+  for (const entry of album.data.tracks) {
+    if (typeof entry === 'object' && 'disc' in entry) {
+      sections.push({ disc: entry.disc, items: entry.tracks.map(normalize) });
+    } else {
+      // 没写 disc 的曲目归到「无碟名」那一节；与写在前面的分组互不干扰
+      const last = sections[sections.length - 1];
+      if (last && last.disc === undefined) last.items.push(normalize(entry));
+      else sections.push({ items: [normalize(entry)] });
+    }
+  }
+  return sections;
+}
+
+/**
+ * 这张专辑里，**每首歌各自的那篇乐评**（曲目标题 → 文章）。
+ *
+ * 关联写在**文章**上（`album` + `track`），专辑页反查 —— 与「文章 → 专辑」同一套。
+ * 好处是：新写一篇乐评只要在文章里声明，**不必回头改专辑文件**。
+ *
+ * 标题按 trim 后精确比较（同歌手档案的做法：错别字应当被喊出来，而不是悄悄容忍）。
+ * 对不上的会 warn，页面照常渲染（那首歌只是没有入口）。
+ */
+export async function getTrackReviews(album: Album): Promise<Map<string, Post>> {
+  const posts = await getPublishedPosts();
+  const titles = new Set(
+    tracksOf(album).flatMap((section) => section.items.map((track) => track.title.trim()))
+  );
+
+  const map = new Map<string, Post>();
+  for (const post of posts) {
+    if (!albumIdsOf(post).includes(album.id)) continue;
+
+    const track = post.data.track?.trim();
+    if (!track) continue;
+
+    if (!titles.has(track)) {
+      warnOnce(
+        `[albums] 专辑「${album.id}」的曲目表里没有「${track}」，` +
+          `但文章「${post.id}」的 track 声明写的是它 —— 检查是否写错字。`
+      );
+      continue;
+    }
+
+    if (map.has(track)) {
+      warnOnce(`[albums] 专辑「${album.id}」的「${track}」有多篇乐评，只取较新的那篇。`);
+      continue;
+    }
+    map.set(track, post);
+  }
+  return map;
 }
 
 /** 2026-10-06 */
@@ -206,7 +296,7 @@ export async function collectArtists(): Promise<ArtistEntry[]> {
     const key = profile.data.name.trim();
     const existing = profileByName.get(key);
     if (existing) {
-      console.warn(
+      warnOnce(
         `[artists] 显示名「${key}」有两份档案：${existing.id} 与 ${profile.id}，只采用前者。`
       );
       continue;
@@ -225,7 +315,7 @@ export async function collectArtists(): Promise<ArtistEntry[]> {
   for (const profile of profiles) {
     const key = profile.data.name.trim();
     if (!albumsByArtist.has(key)) {
-      console.warn(
+      warnOnce(
         `[artists] 档案「${key}」（${profile.id}）匹配不到任何专辑的 artist —— ` +
           `检查是否写错字，或这位歌手的专辑尚未入库。`
       );
@@ -237,7 +327,7 @@ export async function collectArtists(): Promise<ArtistEntry[]> {
   const profiledNames = new Set(profileByName.keys());
   const missing = [...albumsByArtist.keys()].filter((name) => !profiledNames.has(name));
   if (missing.length > 0) {
-    console.warn(
+    warnOnce(
       `[artists] 这些歌手还没有档案：${missing.join('、')}。页面照常生成，` +
         `但 URL 会用中文名；想要干净的 ASCII 地址，在 src/content/artists/<id>/index.md 补一份档案即可。`
     );
@@ -262,6 +352,51 @@ export async function collectArtists(): Promise<ArtistEntry[]> {
 export async function getArtistEntry(id: string): Promise<ArtistEntry | undefined> {
   const entries = await collectArtists();
   return entries.find((entry) => entry.id === id);
+}
+
+/**
+ * 把文章的 `album` 字段统一成 id 数组。
+ *
+ * frontmatter 两种写法都接受：单张写字符串、多张写数组（见 content.config.ts）。
+ * 所有消费方都应当走这里，不要直接读 `post.data.album` —— 否则会在
+ * 「字符串」与「数组」两种形态之间反复分叉。
+ */
+export function albumIdsOf(post: Post): string[] {
+  const value = post.data.album;
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+/**
+ * 文章关联的专辑，**按 frontmatter 里写的顺序**返回（写数组时顺序即展示顺序）。
+ *
+ * 与专辑页的反查（`albumIdsOf(post).includes(album.id)`）配成双向：
+ * 那边由专辑找文章，这边由文章找专辑，两头都通，导流才闭合。
+ *
+ * 只会返回**真实存在**的专辑；某个 id 对不上时只 warn、不中断构建，
+ * 页面照常渲染（只是少一个出口）。刻意不做容错匹配 ——
+ * 写错字应当被喊出来，而不是悄悄失联。
+ */
+export async function getPostAlbums(post: Post): Promise<Album[]> {
+  const ids = albumIdsOf(post);
+  if (ids.length === 0) return [];
+
+  const albums = await getPublishedAlbums();
+  const byId = new Map(albums.map((album) => [album.id, album]));
+
+  const found: Album[] = [];
+  for (const id of ids) {
+    const album = byId.get(id);
+    if (album) {
+      found.push(album);
+    } else {
+      warnOnce(
+        `[posts] 文章「${post.id}」的 album 字段指向「${id}」，但找不到这张专辑 —— ` +
+          `检查 id 是否写错（应为 src/content/albums/ 下的目录名）。`
+      );
+    }
+  }
+  return found;
 }
 
 /**

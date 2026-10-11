@@ -6,10 +6,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import AlbumCard from '../../components/AlbumCard.astro';
 import albumColors from '../../data/album-colors.json';
 import {
+  albumIdsOf,
   collectArtists,
   formatDate,
   getPublishedAlbums,
   getPublishedPosts,
+  getTrackReviews,
+  tracksOf,
   type Album,
 } from '../../lib/content';
 
@@ -33,9 +36,17 @@ const { Content } = await render(album);
  */
 const albumColor = (albumColors as Record<string, string>)[album.id] ?? null;
 
-// 反向关联：哪些文章挂在这张专辑上
+// 反向关联：哪些文章挂在这张专辑上。
+// 文章的 album 支持「单个 id」与「一组 id」两种写法，统一走 albumIdsOf 归一化。
 const posts = await getPublishedPosts();
-const linked = posts.filter((post) => post.data.album === album.id);
+const linked = posts.filter((post) => albumIdsOf(post).includes(album.id));
+
+// 曲目表：归一成「分节」数组（单碟只有一节，多碟每碟一节）
+const trackSections = tracksOf(album);
+
+// 每首歌各自的那篇乐评（曲目标题 → 文章）。文章用 `album` + `track` 声明，
+// 这里反查 —— 所以有单独乐评的曲目会多一个入口，没写的就是一行纯文本。
+const trackReviews = await getTrackReviews(album);
 
 // 双向导流：这位歌手的其他作品（§7.4）。
 // 这条链不通，歌手页与专辑页就只是两个互不相干的列表。
@@ -152,6 +163,74 @@ const artistEntry = (await collectArtists()).find((entry) => entry.name === data
     <div class="prose-article mx-auto mt-12" style="max-width: 680px;">
       <Content />
     </div>
+
+    <!--
+      曲目：这张专辑里有什么歌。顺序**照 frontmatter 里写的来**，不排序 ——
+      有些专辑的曲序本身就是作品的一部分。
+
+      **多碟专辑按碟分节**：碟与碟之间画一条分隔线，且**编号按碟重新起算**
+      （唱片上本来就是这么编的）。单碟专辑只有一节、无碟名，渲染成一路编号到底。
+
+      **有单独乐评的曲目会变成链接**：文章用 `album` + `track` 声明自己写的是哪首歌，
+      这里反查（`trackReviews`）。一首歌因此不需要自己的页面 —— 乐评本身就是那首歌的页面。
+      带 note 的曲目在标题下多一行小字。
+    -->
+    {
+      trackSections.length > 0 && (
+        <section class="mx-auto mt-20 max-w-[680px] border-t border-line pt-10">
+          <h2 class="text-h3 text-ink">曲目</h2>
+          <div class="mt-6">
+            {trackSections.map((section, sectionIndex) => (
+              <div
+                class:list={[
+                  sectionIndex > 0 && 'mt-10 border-t border-line pt-10',
+                ]}
+              >
+                {section.disc && (
+                  <p class="mb-5 text-caption uppercase tracking-widest text-ink-muted">
+                    {section.disc}
+                  </p>
+                )}
+                <ol class="space-y-4">
+                  {section.items.map((track, index) => {
+                    const review = trackReviews.get(track.title.trim());
+                    return (
+                      <li class="flex gap-4">
+                        <span class="w-6 shrink-0 pt-0.5 text-caption tabular-nums text-ink-muted">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <span class="min-w-0">
+                          {review ? (
+                            <a
+                              href={`/posts/${review.id}`}
+                              class="group inline-flex items-baseline gap-2 text-body text-ink"
+                            >
+                              <span class="transition-colors group-hover:text-accent">
+                                {track.title}
+                              </span>
+                              <span class="shrink-0 text-caption text-accent">
+                                乐评 →<span class="sr-only">（读《{review.data.title}》）</span>
+                              </span>
+                            </a>
+                          ) : (
+                            <span class="block text-body text-ink">{track.title}</span>
+                          )}
+                          {track.note && (
+                            <span class="mt-1 block text-small leading-relaxed text-ink-muted">
+                              {track.note}
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
 
     {
       siblings.length > 0 && (

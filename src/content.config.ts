@@ -45,8 +45,27 @@ const posts = defineCollection({
       coverAspect: z.enum(['auto', '16:9', '3:2', '4:3', '1:1']).default('auto'),
       /** true 则不参与构建、不进列表、不进 RSS */
       draft: z.boolean().default(false),
-      /** 关联专辑 id（双向导流）。需与 src/content/albums/ 下的目录名一致 */
-      album: z.string().optional(),
+      /**
+       * 关联专辑 id（双向导流）。需与 src/content/albums/ 下的目录名一致。
+       *
+       * **一张写字符串，多张写数组** —— 两种写法都接受：
+       *   album: "joey-schrodingers-cat"
+       *   album: ["joey-tokyo-insurence", "joey-schrodingers-cat"]
+       *
+       * 多张的典型场景：一首歌既有自己的单曲条目，又后来被收进了某张专辑
+       * （《东京人寿》与《薛丁格的猫》就是这样）。写数组时**顺序即展示顺序**。
+       */
+      album: z.union([z.string(), z.array(z.string())]).optional(),
+      /**
+       * 这篇乐评写的是专辑里的**哪一首歌**（与专辑 `tracks` 里的标题**一字不差**）。
+       *
+       * 有了它，一首歌不需要自己的页面：文章本身就是那首歌的页面，
+       * 专辑的曲目表会反查出这篇并挂上入口（见 `getTrackReviews`）。
+       * 与 `album` 是自己人：`track` 只在 `album` 明确到一张专辑时才有意义。
+       *
+       * ⚠ 标题对不上会**静默失配**（同歌手档案那个坑）→ 构建时有告警兜底。
+       */
+      track: z.string().optional(),
       toc: z.boolean().default(true),
       /** 置 true 才在该页加载 KaTeX 样式，避免全站为偶尔的公式付性能代价 */
       math: z.boolean().default(false),
@@ -54,10 +73,21 @@ const posts = defineCollection({
 });
 
 /**
+ * 单首曲目的两种写法：纯字符串，或带一句注的对象。
+ * 抽出来是因为**双碟以上的演唱会专辑还要再用一次**（见下方 `tracks`）。
+ */
+const trackItem = z.union([z.string(), z.object({ title: z.string(), note: z.string().optional() })]);
+
+/**
  * 专辑。每张专辑一个目录：
  *   src/content/albums/<id>/index.md
  *   src/content/albums/<id>/cover.png
  * 目录名即 id，也就是 /albums/<id> 的 URL。
+ *
+ * ⚠ 2026-10-11：原先为「单曲集合」拆出过一份共用片段（`workFields`），
+ * 后来令宸判断单曲独立成栏目**意义不强**（一首歌天生属于某张专辑），
+ * 于是撤掉单曲集合，共用片段也收回本处 —— **只剩一个消费者时，共用就是多余的间接层**。
+ * 歌曲改由 `tracks` 挂在专辑上（见下）。
  */
 const albums = defineCollection({
   loader: glob({
@@ -71,19 +101,6 @@ const albums = defineCollection({
       artist: z.string(),
       year: z.number().int(),
       /**
-       * 发行形态：**单值**（与文章那边「分类单值、标签多值」同一原则）。
-       *
-       * 这五类是**混合维度**的（LP/EP 看曲目规模，Live 看录制方式，精选看曲目来源），
-       * 所以理论上会有交叉（如「演唱会精选」）。真要补充说明写进正文，不要扩成多值。
-       *
-       * ⚠ 「单曲」指**单曲碟**（CDS，一张碟 2–4 首），与三期规划的独立「单曲」集合
-       *   是两回事 —— 后者是「从专辑里拎出来单独评的一首歌」，各有各的页面。
-       *
-       * **LP 是常态**：数据里照填（否则筛选栏不会有 LP），但卡片上**不显示标记** ——
-       * 标了它，标记就成了背景噪音，反而看不出「这张不普通」。
-       */
-      type: z.enum(['LP', 'EP', 'Live', '精选', '单曲']).optional(),
-      /**
        * 演唱语种。**单值**，驱动专辑墙的「语种」筛选。
        *
        * 为什么不按「港 / 台 / 内地」分地区：地区是**歌手身份的归属**，不是音乐本身的属性 ——
@@ -94,6 +111,47 @@ const albums = defineCollection({
        * 不是「这张特别在哪」，与 `type` 的标记分工不同。
        */
       language: z.string().optional(),
+      /**
+       * 发行形态：**单值**（与文章那边「分类单值、标签多值」同一原则）。
+       *
+       * 这五类是**混合维度**的（LP/EP 看曲目规模，Live 看录制方式，精选看曲目来源），
+       * 所以理论上会有交叉（如「演唱会精选」）。真要补充说明写进正文，不要扩成多值。
+       *
+       * **LP 是常态**：数据里照填（否则筛选栏不会有 LP），但卡片上**不显示标记** ——
+       * 标了它，标记就成了背景噪音，反而看不出「这张不普通」。
+       *
+       * `单曲` 指**单曲碟**（CDS，一张碟 2–4 首），按「作品」收录，与专辑同一套写法。
+       */
+      type: z.enum(['LP', 'EP', 'Live', '精选', '单曲']).optional(),
+      /**
+       * 曲目表。**顺序即展示顺序**（不排序，按你写的来 —— 有些专辑的曲序本身就是作品的一部分）。
+       *
+       * **单碟**直接平铺，三种写法可混用：
+       *   tracks:
+       *     - "一种永远"
+       *     - "心之科学"
+       *     - title: "东京人寿"
+       *       note: "黄伟文的词把「人寿」和「东京」并排放在一起……"
+       *
+       * **双碟以上**（演唱会专辑居多）用 `disc` 分组 —— 专辑页会在碟与碟之间画一条分隔线，
+       * 并让**曲目编号按碟重新起算**（唱片上本来就是这么编的）：
+       *   tracks:
+       *     - disc: "CD 1"
+       *       tracks:
+       *         - "今天等我来"
+       *         - "好歌献给你"
+       *     - disc: "CD 2"
+       *       tracks:
+       *         - "人车志"
+       *
+       * 写了 `note` 的曲目会在标题下面多一行小字 —— **某首歌值得单独说两句时用它**。
+       * 这是「单曲独立成栏目」被撤掉之后，替代它的那条路：不另开页面，想说的话就挂在它所在的专辑里。
+       *
+       * 不填则整块「曲目」不渲染，不留空标题。
+       */
+      tracks: z
+        .array(z.union([trackItem, z.object({ disc: z.string(), tracks: z.array(trackItem) })]))
+        .default([]),
       /** 封面图：放专辑同目录，走 Astro 图片优化管线（自动 WebP/AVIF + 响应式） */
       cover: image(),
       /** 0–10，允许一位小数 */

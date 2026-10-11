@@ -512,6 +512,31 @@ html.theme-transition *::after {
   margin-bottom: 2.5em;
 }
 
+/* 示意图多为固定配色的线稿：黑描边 + 彩填充。直接放在深色主题上会「黑吃黑」，
+   黑色标注文字几乎不可见。给正文图片垫一层浅底——不透明照片会盖住这层底、
+   视觉上毫无变化，只有带透明通道的 PNG 才显出底衬。
+   用 box-shadow 的 spread 外扩，而不是 padding，避免图片尺寸随主题变化。 */
+.dark .prose-article img {
+  background-color: #f5f5f7;
+  box-shadow: 0 0 0 0.75rem #f5f5f7;
+}
+
+/* 图注：紧跟在图片段落之后、且整段只有一个 <em> 的段落。 */
+.prose-article p:has(> img):has(+ p > em:only-child) {
+  margin-bottom: 0.75rem;
+}
+
+.prose-article p:has(> img) + p:has(> em:only-child) {
+  margin-top: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.prose-article p:has(> img) + p:has(> em:only-child) em {
+  font-style: normal;
+}
+
 .prose-article hr {
   border: none;
   border-top: 1px solid var(--line);
@@ -659,4 +684,30 @@ html.theme-transition *::after {
   blockquote {
     break-inside: avoid;
   }
+}
+
+/* ------------------------------------------------------------------
+ * 共享小组件样式
+ * ------------------------------------------------------------------ */
+
+/**
+ * 发行形态标记（Live / EP / 精选 / 单曲）。
+ *
+ * 专辑卡片与文章页的「相关专辑」都用它，所以放在全局 —— **一处定义，两处使用**。
+ * （原先只写在 AlbumCard 的 scoped <style> 里，别的组件拿不到。）
+ *
+ * 中性色：全站只有一个强调色，它的语义是「可点 / 当前页」，
+ * 标记用它会被误读成可点。用淡底 + 次要色，靠形状与位置被识别。
+ *
+ * ⚠ LP 是常态，**不显示标记** —— 标了它，标记就成了背景噪音，
+ *   反而看不出「这张不普通」。
+ */
+.album-type {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 4px;
+  background-color: var(--surface-alt);
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.6;
 }
