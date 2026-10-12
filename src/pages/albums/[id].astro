@@ -173,6 +173,7 @@ const artistEntry = (await collectArtists()).find((entry) => entry.name === data
 
       **有单独乐评的曲目会变成链接**：文章用 `album` + `track` 声明自己写的是哪首歌，
       这里反查（`trackReviews`）。一首歌因此不需要自己的页面 —— 乐评本身就是那首歌的页面。
+      乐评的 `description` 会作为一句简介挂在链接下方（信息跟着文章走，专辑文件不用回头改）。
       带 note 的曲目在标题下多一行小字。
     -->
     {
@@ -214,6 +215,11 @@ const artistEntry = (await collectArtists()).find((entry) => entry.name === data
                             </a>
                           ) : (
                             <span class="block text-body text-ink">{track.title}</span>
+                          )}
+                          {review?.data.description && (
+                            <span class="mt-1 block text-small leading-relaxed text-ink-muted">
+                              {review.data.description}
+                            </span>
                           )}
                           {track.note && (
                             <span class="mt-1 block text-small leading-relaxed text-ink-muted">
