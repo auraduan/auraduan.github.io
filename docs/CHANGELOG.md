@@ -21,6 +21,14 @@
 
 ---
 
+## 2026-10-13 · 导入两篇 Python 学习笔记
+
+**新增文章**：`posts/python-syntax-handbook/`《Python 基础语法自查手册》与 `posts/python-oop/`《Python 面向对象编程（Object Oriented Programming）》，均归分类 `Python`，标签含新增的「语法 / 笔记 / 面向对象 / OOP」。源稿为 `E:\A_Learning\Computer science\` 下的两份 Markdown 学习笔记。
+
+**导入处理**：去掉正文 H1（标题进 frontmatter）；代码围栏语言标识统一小写 `python`（保证高亮）；清理行尾空格；补齐 OOP 笔记里 `__add__` 那条缺失的引号。人称核查：两篇均无「你」，客观陈述体红线天然满足，未改动措辞。两篇均无配图，列表卡片按既有规则收拢为纯文字样式。
+
+**验证**：构建 88 页（+2 文章 +4 新标签页）零警告；两篇文章页截图验收——目录 14 节齐全、代码块高亮正常、三张表格（关键字 / 数据类型 / 列表方法 / 魔术方法）渲染正常。
+
 ## 2026-10-12 · 导入乐评《傻女》+ 专辑页乐评简介
 
 **新增文章**：`posts/shanu-passacaglia/`《陈慧娴《傻女》的旋律，早在 17 世纪就已定下》（随笔，`album: pc-xianqing` + `track: 傻女`）。源稿为外部 `.docx`，三张配图随文导入（封面复用《娴情》大碟封面 474×474；巴赫 BWV 582 手稿；2014 Back to Priscilla 剧照），正文图注走既有的「图片下紧跟斜体」样式。作者落款 `SD_1631` 与 References 外链按原稿保留。
