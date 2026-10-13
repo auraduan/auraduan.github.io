@@ -1,9 +1,9 @@
 ---
-title: "Python 基础语法自查手册"
+title: "Python 基础（一）：语法自查手册"
 description: "从 print、变量命名到列表字典、函数与模块导入——一份可以随时回查的 Python 基础语法清单，常见方法附带「会不会改动原对象」的对照表。"
 publishedAt: 2026-10-13
 category: "Python"
-tags: ["Python", "语法", "笔记"]
+tags: ["Python", "Python基础", "语法", "笔记"]
 draft: false
 toc: true
 math: false

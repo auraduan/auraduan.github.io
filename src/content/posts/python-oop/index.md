@@ -1,9 +1,9 @@
 ---
-title: "Python 面向对象编程（Object Oriented Programming）"
+title: "Python 基础（二）：面向对象编程（OOP）"
 description: "类与对象、属性与方法、封装继承多态，再到 __str__、__add__ 等魔术方法的重载写法——附两道完整可运行的例题。"
 publishedAt: 2026-10-13
 category: "Python"
-tags: ["Python", "面向对象", "OOP", "笔记"]
+tags: ["Python", "Python基础", "面向对象", "OOP", "笔记"]
 draft: false
 toc: true
 math: false

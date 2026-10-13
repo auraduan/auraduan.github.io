@@ -21,13 +21,15 @@
 
 ---
 
-## 2026-10-13 · 导入两篇 Python 学习笔记
+## 2026-10-13 · 导入三篇 Python 学习笔记，重组为「Python 基础」系列
 
-**新增文章**：`posts/python-syntax-handbook/`《Python 基础语法自查手册》与 `posts/python-oop/`《Python 面向对象编程（Object Oriented Programming）》，均归分类 `Python`，标签含新增的「语法 / 笔记 / 面向对象 / OOP」。源稿为 `E:\A_Learning\Computer science\` 下的两份 Markdown 学习笔记。
+**新增文章**：`posts/python-file-exception-testing/`《Python 基础（三）：文件、异常、测试与高阶函数》，归分类 `Python`。源稿为 `E:\A_Learning\Computer science\Python 基础首尾.md`（文件读写与 a+ 指针陷阱 / try-except 与常见异常对照表 / unittest 夹具与断言手册 / map-filter-sorted 与 lambda），表格里两处行内公式（$a > b$、$a \ge b$）是该文首处需要 `math: true` 的笔记。
 
-**导入处理**：去掉正文 H1（标题进 frontmatter）；代码围栏语言标识统一小写 `python`（保证高亮）；清理行尾空格；补齐 OOP 笔记里 `__add__` 那条缺失的引号。人称核查：两篇均无「你」，客观陈述体红线天然满足，未改动措辞。两篇均无配图，列表卡片按既有规则收拢为纯文字样式。
+**系列化改名**：三篇 Python 笔记（含前一日导入的两篇）同日重发，标题统一为「Python 基础（一）：语法自查手册」「Python 基础（二）：面向对象编程（OOP）」「Python 基础（三）：…」，并共用新标签「Python基础」——标签页 `/tags/Python基础/` 即系列页。slug 均未改动。
 
-**验证**：构建 88 页（+2 文章 +4 新标签页）零警告；两篇文章页截图验收——目录 14 节齐全、代码块高亮正常、三张表格（关键字 / 数据类型 / 列表方法 / 魔术方法）渲染正常。
+**导入处理**：去掉正文 H1；代码围栏语言标识统一小写（`python` / `markdown`）；修正两处笔误（「应该现成以下布局」→「应该有以下布局」、「匿名函数是的代码」→「使代码」）；代码字符串里的「你输入的…」属程序输出，不算人称违规。
+
+**验证**：构建 93 页（+1 文章 +4 新标签页）零警告；文章页（目录、代码高亮、两张大表格、KaTeX 行内公式）与 `/tags/Python基础/` 系列页截图验收通过。
 
 ## 2026-10-12 · 导入乐评《傻女》+ 专辑页乐评简介
 
