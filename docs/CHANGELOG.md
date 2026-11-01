@@ -22,6 +22,44 @@
 
 ---
 
+## 2026-11-01 傍晚（六）· 修 CI：删掉过时的 esbuild 补二进制步骤
+
+**现象**（线上 Actions `build` 挂在这一步）：
+
+```
+Run ESBUILD_VERSION=$(node -p "require('esbuild/package.json').version")
+Error: Cannot find module 'esbuild/package.json'
+```
+
+**根因**：这一步是 v1.x 时代的补丁——当时 Astro 6 / Vite 6 用 esbuild，而锁文件缺平台可选依赖，
+于是用 `npm install --no-save "@esbuild/linux-x64@<已装版本>"` 事后补。
+
+Astro 7 + Vite 8 把打包器换成了 **Rolldown**，`esbuild` 已**整个从依赖树里消失**：
+
+| 检查 | 结果 |
+|---|---|
+| `node -p "Object.keys(require('./node_modules/astro/package.json').dependencies)"` | 有 `rolldown`，**无 esbuild** |
+| `node -p "require('./node_modules/vite/package.json').version"` | 8.3.5，依赖 `lightningcss / rolldown`，**无 esbuild** |
+| 锁文件里含 esbuild 的条目 | **0 条** |
+
+补丁失去了存在的理由，只剩副作用：`require('esbuild/package.json')` 必然 MODULE_NOT_FOUND。
+
+**修法**（`.github/workflows/deploy.yml`）：
+1. **删除**「补齐 esbuild 平台二进制」整步
+2. 安装从 `npm install --ignore-scripts` 回到 **`npm ci --ignore-scripts`**——锁文件现在完整，
+   四个平台二进制实测都在：`@rolldown/binding-linux-x64-gnu` · `@img/sharp-linux-x64` ·
+   `@tailwindcss/oxide-linux-x64-gnu` · `lightningcss-linux-x64-gnu`
+3. 注释重写：不再讲 esbuild 的旧坑，改为写明「补丁会过期，换打包器时要回头清」
+
+**本地验证**（按 CI 的方式完整跑了一遍）：
+- `npm ci --dry-run --ignore-scripts` → 锁文件与 `package.json` 同步
+- `npm ci --ignore-scripts` → 320 个包，`@rolldown/binding-win32-x64-msvc` 到位
+- `npm run build` → **106 页** + Pagefind 索引 106 页 / 5694 词，零告警
+
+> **本地验证时踩的坑**：`astro dev`（PID 5488）正开着，`lightningcss.win32-x64-msvc.node` 被进程占用，
+> `npm ci` 删不掉 → `EPERM unlink`，node_modules 被删了一半卡在残废状态。停掉 dev 进程后重装正常。
+> **以后本地跑 `npm ci` 前先停 dev server。**（dev 已停止，需要重新 `npm run dev`。）
+
 ## 2026-11-01 傍晚（五）· 工具导航补六个链接
 
 **新增**（令宸指定）：ArduPilot 文档、Python 文档、ChatGPT、Gemini、DeepSeek、Kimi。**两处都加了**：

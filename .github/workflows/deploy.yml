@@ -41,24 +41,22 @@ jobs:
           cache: npm
 
       - name: 安装依赖
-        # 用 --ignore-scripts 而不是 npm ci，原因有两条：
+        # 用 npm ci：严格照 package-lock.json 装，锁文件与 package.json 一旦不同步
+        # 就直接报错，而不是悄悄装出一套本机才有、CI 上没有的依赖树。
         #
-        # 1) 本项目的 package-lock.json 里缺少 esbuild 平台可选依赖的条目
-        #    （npm 对可选依赖的安装失败是**静默跳过**的，生成锁文件时本机文件被占用，
-        #    于是这个条目根本没写进去）。npm ci 严格照锁文件装，会漏掉这个二进制，
-        #    随后以「generateBinPath」这种毫不相关的报错把构建炸掉。
-        # 2) 跳过安装脚本，避免 esbuild 的 postinstall 在二进制缺失时先一步失败，
-        #    那样连补救的机会都没有。
+        # ⚠ 2026-11-01 之前这里不是这样。当时锁文件缺 **esbuild** 的平台可选依赖
+        #   （npm 对可选依赖安装失败是静默跳过的），于是改用 `npm install` 加一步
+        #   「补齐 esbuild 平台二进制」。Astro 7 / Vite 8 换到 **Rolldown** 之后
+        #   esbuild 已从依赖树里彻底消失，那一步反而成了必炸的步骤
+        #   （`require('esbuild/package.json')` → MODULE_NOT_FOUND）。
+        #   现在锁文件里各平台二进制齐全，实测确认过：
+        #     @rolldown/binding-linux-x64-gnu · @img/sharp-linux-x64
+        #     @tailwindcss/oxide-linux-x64-gnu · lightningcss-linux-x64-gnu
+        #   再加二进制就不用补了 —— 补丁消失的前提是**依赖真的变了**，别只删代码。
         #
-        # 本项目所有原生二进制（sharp / rolldown / tailwind oxide / satteri …）
-        # 都通过 optionalDependencies 分发，不依赖 postinstall，所以跳过是安全的。
-        run: npm install --ignore-scripts
-
-      - name: 补齐 esbuild 平台二进制
-        # 版本从已装的 esbuild 反查，不写死——否则日后 esbuild 升级会出现版本错配。
-        run: |
-          ESBUILD_VERSION=$(node -p "require('esbuild/package.json').version")
-          npm install --no-save "@esbuild/linux-x64@${ESBUILD_VERSION}"
+        # 仍然跳过安装脚本：本站所有原生二进制都通过 optionalDependencies 分发
+        # （sharp / rolldown / tailwind oxide / satteri），不靠 postinstall 下载。
+        run: npm ci --ignore-scripts
 
       - name: 构建
         run: npm run build
