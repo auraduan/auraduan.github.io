@@ -4,6 +4,8 @@ description: "文件读写的 open 模式与 a+ 指针陷阱、try/except 四段
 publishedAt: 2026-10-13
 category: "Python"
 tags: ["Python", "Python基础", "文件", "异常", "测试", "笔记"]
+collection: "python-basics"
+collectionOrder: 3
 draft: false
 toc: true
 math: true

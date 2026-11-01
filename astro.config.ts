@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex';
 import { SITE } from './src/site.config';
 import remarkCodeLanguage from './src/lib/remark-code-language';
 import remarkCjkSpacing from './src/lib/remark-cjk-spacing';
+import remarkAdmonitions from './src/lib/remark-admonitions';
 
 export default defineConfig({
   site: SITE.url,
@@ -38,9 +39,11 @@ export default defineConfig({
 
   markdown: {
     // LaTeX 公式：remark-math 解析 $...$ / $$...$$，rehype-katex 渲染为 HTML
+    // remarkAdmonitions 把 `> [!注意]` 转成提示框（必须排在 CJK 间距之前，
+    //   否则标记文本里会被插入细空格，`[!注意]` 就匹配不上了）
     // remarkCodeLanguage 给每个代码块补 title=语言名，让标题栏显示语言类型
     // remarkCjkSpacing 在汉字与拉丁字母/数字之间插入细空格（中文排版惯例）
-    remarkPlugins: [remarkMath, remarkCodeLanguage, remarkCjkSpacing],
+    remarkPlugins: [remarkMath, remarkAdmonitions, remarkCodeLanguage, remarkCjkSpacing],
     // \arraystretch 必须在这一层设：KaTeX 会把矩阵每行的纵坐标算成内联 top:Xem，
     // 事后再用 CSS 改是改不动的（内联样式赢）。1 是 LaTeX 默认值，偏挤。
     rehypePlugins: [[rehypeKatex, { macros: { '\\arraystretch': '1.35' } }]],

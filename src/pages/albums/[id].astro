@@ -329,18 +329,29 @@ const artistEntry = (await collectArtists()).find((entry) => entry.name === data
     transform: translate(40px, calc(-50% + 40px));
   }
 
-  /* 窄屏（<640px）stack 布局：伸出容器会溢出视口，改为叠在封面之上居中旋转 */
+  /*
+    窄屏（<640px）stack 布局。
+
+    这里原先是「z-index 提到封面之上、居中放大」——为了让黑胶在窄屏也看得见。
+    代价是整张唱片压在封面上，封面只剩四边一圈黄边，读者看到的像「图被换掉了」，
+    而不是「黑胶从封套里出来」。**黑胶必须始终在封面之后**，这个层次是整张页面的
+    核心隐喻，不能为了凑可见性牺牲掉。
+
+    能滑出的距离由布局决定，不由设计决定：容器右缘到视口只剩 px-6 的 24px，
+    再多就撑出横向溢出。所以窄屏只向右滑 22px（留 2px 余量），
+    露出的那一道月牙靠四道 conic 彗尾读转动——这套纹路本来就是为窄月牙配的。
+  */
   @media (max-width: 639px) {
     .vinyl {
-      z-index: 20;
-      right: auto;
-      left: 50%;
-      width: 78%;
-      transform: translate(-50%, -50%);
+      z-index: 0; /* 封面之下，与桌面一致 */
+      right: 0;
+      left: auto;
+      width: 86%;
+      transform: translate(0, -50%);
     }
 
     .album-turntable.is-playing .vinyl {
-      transform: translate(-50%, -50%);
+      transform: translate(22px, -50%);
     }
   }
 

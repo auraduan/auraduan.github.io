@@ -1,0 +1,77 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import CollectionChapters from '../../components/CollectionChapters.astro';
+import { collectCollections, type CollectionGroup } from '../../lib/content';
+
+/**
+ * 单条合集：导语 + 章节表。
+ *
+ * 导语（合集文件的正文）是写给第一次来的人看的——这条线讲什么、按什么顺序读、
+ * 要什么基础。它用 `.prose-article` 包着，于是提示框、公式、代码块与文章里同款。
+ */
+export async function getStaticPaths() {
+  const entries = await collectCollections();
+  return entries.map((entry) => ({
+    params: { id: entry.collection.id },
+    props: { entry },
+  }));
+}
+
+interface Props {
+  entry: CollectionGroup;
+}
+
+const { entry } = Astro.props;
+const { collection, chapters } = entry;
+
+// ⚠ 正文在 collection entry 自己身上（`collection.body`），不在 render() 的返回值里
+const { Content: Intro } = await render(collection);
+const introBody = collection.body;
+const first = chapters[0];
+---
+
+<BaseLayout title={collection.data.title} description={collection.data.description}>
+  <PageHeader
+    eyebrow="合集"
+    title={collection.data.title}
+    description={collection.data.description}
+  />
+
+  <div class="mx-auto max-w-[980px] px-6 pb-24">
+    <div class="max-w-[680px] text-caption tabular-nums text-ink-muted" data-reveal>
+      共 {chapters.length} 章 · 按顺序读
+      {
+        first && (
+          <>
+            <span aria-hidden="true"> · </span>
+            <a href={`/posts/${first.id}`} class="tap-area text-accent hover:underline">
+              从第 1 章开始 →
+            </a>
+          </>
+        )
+      }
+    </div>
+
+    {
+      introBody?.trim() && (
+        <div class="prose-article mt-10 max-w-[680px]" data-reveal>
+          <Intro />
+        </div>
+      )
+    }
+
+    <section class="mt-14 max-w-[680px]">
+      <h2 class="text-h3 text-ink">章节</h2>
+      <CollectionChapters chapters={chapters} />
+    </section>
+
+    <div class="mt-16">
+      <a href="/collections" class="tap-area inline-block text-small text-accent hover:underline"
+        >← 全部合集</a
+      >
+    </div>
+  </div>
+</BaseLayout>

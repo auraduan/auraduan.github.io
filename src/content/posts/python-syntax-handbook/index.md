@@ -4,12 +4,12 @@ description: "从 print、变量命名到列表字典、函数与模块导入—
 publishedAt: 2026-10-13
 category: "Python"
 tags: ["Python", "Python基础", "语法", "笔记"]
+collection: "python-basics"
+collectionOrder: 1
 draft: false
 toc: true
 math: false
 ---
-
-> 对应教程链接：[3小时超快速入门 Python](https://www.bilibili.com/video/BV1Jgf6YvE8e?p=6)
 
 ## 0 Python 的安装
 

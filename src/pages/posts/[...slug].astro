@@ -7,8 +7,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toc from '../../components/Toc.astro';
 import ReadingProgress from '../../components/ReadingProgress.astro';
 import FootnoteTooltip from '../../components/FootnoteTooltip.astro';
+import ImageZoom from '../../components/ImageZoom.astro';
+import CollectionChapters from '../../components/CollectionChapters.astro';
 import {
   adjacentPosts,
+  collectCollections,
   formatDate,
   formatDateCN,
   getPostAlbums,
@@ -16,6 +19,7 @@ import {
   readingTime,
   relatedPosts,
   resolveAspect,
+  collectionPosition,
   type Post,
 } from '../../lib/content';
 
@@ -43,6 +47,9 @@ const { prev, next } = adjacentPosts(post, all);
 // （如一首单曲 + 它后来被收录的专辑）；对不上的 id 会被跳过（只 warn）
 const postAlbums = await getPostAlbums(post);
 
+// 所属合集与它在其中的位置。不属于任何合集时是 undefined，整块不渲染
+const collectionInfo = collectionPosition(post, await collectCollections());
+
 // 目录只收二、三级标题。
 // 排除 GFM 脚注区自动生成的 "Footnotes" 标题 —— 它是给屏幕阅读器用的，
 // 不该出现在目录里，否则每篇带脚注的文章都会多一项。
@@ -65,19 +72,42 @@ const toc = data.toc
  */
 const aspect = resolveAspect(data.coverAspect, data.cover);
 
-// 封面同时用作社交分享图，分享出去的卡片才有图
-const ogImage = data.cover
-  ? (await getImage({ src: data.cover, width: 1200, format: 'jpeg', quality: 82 })).src
+// 封面同时用作社交分享图，分享出去的卡片才有图。
+// 尺寸一并取出来交给 BaseLayout —— 有了 og:image:width/height，
+// 平台在图片下载完之前就能预留正确的版面比例，不会先抖一下。
+const ogImageData = data.cover
+  ? await getImage({ src: data.cover, width: 1200, format: 'jpeg', quality: 82 })
   : undefined;
+const ogImage = ogImageData?.src;
+const ogImageWidth = ogImageData?.attributes.width;
+const ogImageHeight = ogImageData?.attributes.height;
 ---
 
-<BaseLayout title={data.title} description={data.description} image={ogImage} wide>
+<BaseLayout
+  title={data.title}
+  description={data.description}
+  image={ogImage}
+  imageAlt={data.cover ? `${data.title} 封面` : undefined}
+  imageWidth={ogImageWidth}
+  imageHeight={ogImageHeight}
+  type="article"
+  wide
+>
   <!--
     KaTeX 样式必须进 <head>：它是渲染阻塞资源。原来放在 body 里，首屏会先以
     无样式状态绘制——此时 KaTeX 的 MathML 与 HTML 两套输出同时可见，
     看起来就是「公式重叠、乱成一团」。仅在 math: true 的文章里加载。
   -->
-  {data.math && <link slot="head" rel="stylesheet" href={katexStyles} />}
+  <Fragment slot="head">
+    {data.math && <link rel="stylesheet" href={katexStyles} />}
+    <!-- 文章的 Open Graph 细节：分享卡片上的日期、作者与栏目 -->
+    <meta property="article:published_time" content={data.publishedAt.toISOString()} />
+    {data.updatedAt && (
+      <meta property="article:modified_time" content={data.updatedAt.toISOString()} />
+    )}
+    <meta property="article:section" content={data.category} />
+    {data.tags.map((tag) => <meta property="article:tag" content={tag} />)}
+  </Fragment>
 
   <ReadingProgress />
   <FootnoteTooltip />
@@ -149,6 +179,29 @@ const ogImage = data.cover
                 </li>
               ))}
             </ul>
+          )
+        }
+
+        <!--
+          合集条：告诉读者「这是哪条线、第几章」，点进去是整条路线的目录。
+          位置放在标签下方——标签是「归类」，合集是「顺序」，后者回答的是
+          「下一篇读什么」，所以更靠前、也更显眼。
+        -->
+        {
+          collectionInfo && (
+            <a
+              href={`/collections/${collectionInfo.entry.collection.id}`}
+              class="group mt-6 flex items-center gap-3 rounded-card-sm px-4 py-3"
+              style="background-color: var(--surface-alt);"
+            >
+              <span class="shrink-0 text-caption text-ink-muted">合集</span>
+              <span class="min-w-0 flex-1 truncate text-small text-ink transition-colors group-hover:text-accent">
+                {collectionInfo.entry.collection.data.title}
+              </span>
+              <span class="shrink-0 text-caption tabular-nums text-ink-muted">
+                第 {collectionInfo.index + 1} / {collectionInfo.entry.chapters.length} 章
+              </span>
+            </a>
           )
         }
       </div>
@@ -240,6 +293,64 @@ const ogImage = data.cover
     }
 
     <!--
+      本合集：整条路线的目录 + 当前所在位置（「当前」标在行尾），
+      并在下方给出上一章 / 下一章 —— 这是「接下来读什么」最直接的答案。
+      章节顺序来自各篇文章的 collectionOrder，不是发布时间。
+    -->
+    {
+      collectionInfo && (
+        <section class="mt-16 max-w-[680px] border-t border-line pt-8">
+          <div class="flex items-baseline justify-between gap-4">
+            <p class="text-caption text-ink-muted">
+              合集 · 共 {collectionInfo.entry.chapters.length} 章
+            </p>
+            <a
+              href={`/collections/${collectionInfo.entry.collection.id}`}
+              class="tap-area text-caption text-accent hover:underline"
+            >
+              合集目录 →
+            </a>
+          </div>
+
+          <h2 class="mt-2 text-h3 text-ink">{collectionInfo.entry.collection.data.title}</h2>
+
+          <CollectionChapters
+            chapters={collectionInfo.entry.chapters}
+            currentId={post.id}
+          />
+
+          {(collectionInfo.prev || collectionInfo.next) && (
+            <div class="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-small">
+              {collectionInfo.prev && (
+                <a
+                  href={`/posts/${collectionInfo.prev.id}`}
+                  class="group inline-flex max-w-full items-baseline gap-1.5"
+                >
+                  <span class="shrink-0 text-ink-muted">← 上一章</span>
+                  <span class="truncate text-ink transition-colors group-hover:text-accent">
+                    {collectionInfo.prev.data.title}
+                  </span>
+                </a>
+              )}
+              {collectionInfo.next && (
+                <a
+                  href={`/posts/${collectionInfo.next.id}`}
+                  class="group inline-flex max-w-full items-baseline gap-1.5"
+                >
+                  <span class="shrink-0 text-ink-muted">下一章</span>
+                  <span class="truncate text-ink transition-colors group-hover:text-accent">
+                    {collectionInfo.next.data.title}
+                  </span>
+                  <span class="shrink-0 text-ink-muted">→</span>
+                </a>
+              )}
+            </div>
+          )}
+        </section>
+      )
+    }
+
+    <!--
       相邻文章：接着读的入口，紧贴正文。语义按时间轴——「上一篇」= 更早、「下一篇」= 更新，
       两栏都带日期，避免歧义。构建时算好，零运行时成本。
     -->
@@ -305,6 +416,13 @@ const ogImage = data.cover
       >
     </div>
   </article>
+
+  <!--
+    图片查看器：点正文图片即全屏，支持缩放 / 拖动 / 图注 / 前后翻页。
+    **放在 </article> 之后**是这个组件的硬约束——它的脚本是内联在 body 里的普通
+    script，会就地执行；排在正文之前时，执行那一刻 `.prose-article` 还不存在。
+  -->
+  <ImageZoom />
 </BaseLayout>
 
 <script data-astro-rerun>

@@ -1,0 +1,550 @@
+---
+/**
+ * 图片放大查看器（Lightbox）。
+ *
+ * 正文里任何一张图（`.prose-article img`，且不在链接里）点一下即全屏：
+ * 支持缩放（滚轮 / 双指 / 按钮 / 双击）、拖动、前后翻页、关闭，并把图注一并显示出来。
+ *
+ * 三条设计约束：
+ *
+ * 1. **图注沿用既有约定**——图片下紧跟一行斜体 `*说明*`（见需求方案 §4「图注」）。
+ *    这里不去改 Markdown 的 DOM 结构，只在打开时读取相邻段落里的 `<em>`，
+ *    所以已经写好的文章一行都不用改。没写图注就退回 `alt`。
+ *
+ * 2. **脚本必须幂等 + 事件委托到 document**。带 `data-astro-rerun` 的脚本在每次
+ *    视图过渡后都会重跑，而覆盖层 DOM 是随页面一起换掉的；元素级监听会绑到旧节点上
+ *    （首次导航后按钮全部失灵）。所以监听只在第一次绑到 document，处理时再按需查 DOM。
+ *
+ * 3. **零 JS 时页面完全不受影响**：覆盖层默认 `display:none`，图片照常显示，
+ *    只是点不开（`is-zoom-ready` 这个类由脚本添加，光标样式也跟着它走）。
+ *
+ * ⚠ 带 `data-astro-rerun` 的脚本不经 esbuild 转译，**里面不能有任何 TypeScript 语法**。
+ */
+---
+
+<div
+  class="lightbox"
+  id="lightbox"
+  role="dialog"
+  aria-modal="true"
+  aria-label="图片查看"
+  aria-hidden="true"
+  tabindex="-1"
+>
+  <div class="lightbox-toolbar">
+    <span class="lightbox-counter" data-lb-counter></span>
+
+    <div class="lightbox-tools">
+      <button type="button" class="lb-btn" data-lb-prev aria-label="上一张" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M15 5 8 12l7 7" />
+        </svg>
+      </button>
+      <button type="button" class="lb-btn" data-lb-next aria-label="下一张" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m9 5 7 7-7 7" />
+        </svg>
+      </button>
+
+      <span class="lightbox-scale" data-lb-scale aria-hidden="true">100%</span>
+
+      <button type="button" class="lb-btn" data-lb-out aria-label="缩小">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M5 12h14" />
+        </svg>
+      </button>
+      <button type="button" class="lb-btn" data-lb-in aria-label="放大">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </button>
+      <button type="button" class="lb-btn lb-close" data-lb-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="lightbox-stage" data-lb-stage>
+    <img class="lightbox-img" data-lb-img alt="" decoding="async" />
+  </div>
+
+  <p class="lightbox-caption" data-lb-caption hidden></p>
+</div>
+
+<script data-astro-rerun>
+  (() => {
+    const scope = /** @type {any} */ (window);
+
+    /**
+     * 给正文打标，光标才变成放大镜（幂等）。
+     *
+     * ⚠ 必须能重复调用：脚本是内联在 body 里的**普通 script**（不是 module），
+     * 解析到它时正文可能还没被解析出来（组件排在 <article> 之前时就是如此）。
+     * 所以除了一次立即调用，还挂在 `astro:page-load` 上兜底——视图过渡之后
+     * 页面结构会整体换掉，这个事件每次都会来。
+     */
+    const markReady = () => {
+      for (const root of document.querySelectorAll('.prose-article')) {
+        root.classList.add('is-zoom-ready');
+      }
+    };
+
+    markReady();
+    document.addEventListener('astro:page-load', markReady);
+
+    if (scope.__lightboxBound) return;
+    scope.__lightboxBound = true;
+
+    const MAX_SCALE = 5;
+    const MIN_SCALE = 1;
+
+    const state = { images: [], index: 0, scale: 1, x: 0, y: 0, lastFocus: null };
+
+    const overlay = () => document.getElementById('lightbox');
+    const part = (selector) => {
+      const box = overlay();
+      return box ? box.querySelector(selector) : null;
+    };
+
+    /** 当前页正文里所有可放大的图：不含链接内的图（那是有出处的，点了应当跳转） */
+    const collect = () => {
+      const root = document.querySelector('.prose-article');
+      if (!root) return [];
+      return Array.from(root.querySelectorAll('img')).filter((img) => !img.closest('a'));
+    };
+
+    /** 图注：优先取「图片下紧跟的一行斜体」，否则退回 alt */
+    const captionOf = (img) => {
+      const paragraph = img.closest('p');
+      const next = paragraph ? paragraph.nextElementSibling : null;
+      if (
+        next &&
+        next.tagName === 'P' &&
+        next.children.length === 1 &&
+        next.children[0].tagName === 'EM'
+      ) {
+        const text = (next.textContent || '').trim();
+        if (text) return text;
+      }
+      return (img.getAttribute('alt') || '').trim();
+    };
+
+    const apply = () => {
+      const img = part('[data-lb-img]');
+      if (!img) return;
+      img.style.transform =
+        'translate(' + state.x + 'px, ' + state.y + 'px) scale(' + state.scale + ')';
+
+      const label = part('[data-lb-scale]');
+      if (label) label.textContent = Math.round(state.scale * 100) + '%';
+
+      const box = overlay();
+      if (box) box.classList.toggle('is-zoomed', state.scale > 1.01);
+    };
+
+    const resetView = () => {
+      state.scale = 1;
+      state.x = 0;
+      state.y = 0;
+      apply();
+    };
+
+    const render = () => {
+      const img = state.images[state.index];
+      if (!img) return;
+
+      const target = part('[data-lb-img]');
+      // currentSrc 是浏览器从 srcset 里实际挑中的那一档，通常已是最大可用尺寸
+      if (target) {
+        target.src = img.currentSrc || img.src;
+        target.alt = img.getAttribute('alt') || '';
+      }
+
+      const caption = part('[data-lb-caption]');
+      if (caption) {
+        const text = captionOf(img);
+        caption.textContent = text;
+        caption.hidden = !text;
+      }
+
+      const counter = part('[data-lb-counter]');
+      if (counter) {
+        counter.textContent =
+          state.images.length > 1 ? state.index + 1 + ' / ' + state.images.length : '';
+      }
+
+      const multi = state.images.length > 1;
+      for (const btn of document.querySelectorAll('#lightbox [data-lb-prev], #lightbox [data-lb-next]')) {
+        btn.hidden = !multi;
+      }
+
+      resetView();
+    };
+
+    const open = (img) => {
+      const box = overlay();
+      if (!box) return;
+
+      state.images = collect();
+      const index = state.images.indexOf(img);
+      if (index < 0) return;
+      state.index = index;
+      state.lastFocus = document.activeElement;
+
+      render();
+      box.classList.add('is-open');
+      box.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+
+      // 焦点交给弹层本身，而不是关闭按钮：程序化聚焦按钮会让它立刻亮起一圈
+      // 焦点环（对鼠标用户是噪音）。键盘用户按一下 Tab 就进到工具栏。
+      box.focus();
+    };
+
+    const close = () => {
+      const box = overlay();
+      if (!box || !box.classList.contains('is-open')) return;
+
+      box.classList.remove('is-open', 'is-zoomed');
+      box.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      resetView();
+
+      const back = state.lastFocus;
+      state.lastFocus = null;
+      if (back && typeof back.focus === 'function') back.focus();
+    };
+
+    const go = (delta) => {
+      if (state.images.length < 2) return;
+      const total = state.images.length;
+      state.index = (state.index + delta + total) % total;
+      render();
+    };
+
+    /** 按缩放倍率缩放；给了坐标就以该点为锚，否则以视口中心为锚 */
+    const zoomTo = (nextScale, clientX, clientY) => {
+      const before = state.scale;
+      const target = Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale));
+      if (Math.abs(target - before) < 0.001) return;
+
+      const stage = part('[data-lb-stage]');
+      if (!stage) return;
+      const rect = stage.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const px = typeof clientX === 'number' ? clientX : cx;
+      const py = typeof clientY === 'number' ? clientY : cy;
+      const ratio = target / before;
+
+      // 让光标下的那一点在缩放前后落在同一处
+      state.x = px - cx - (px - cx - state.x) * ratio;
+      state.y = py - cy - (py - cy - state.y) * ratio;
+      state.scale = target;
+
+      if (state.scale <= MIN_SCALE + 0.01) {
+        state.scale = MIN_SCALE;
+        state.x = 0;
+        state.y = 0;
+      }
+      apply();
+    };
+
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      if (target.closest('#lightbox')) {
+        if (target.closest('[data-lb-close]')) return close();
+        if (target.closest('[data-lb-prev]')) return go(-1);
+        if (target.closest('[data-lb-next]')) return go(1);
+        if (target.closest('[data-lb-in]')) return zoomTo(state.scale * 1.4);
+        if (target.closest('[data-lb-out]')) return zoomTo(state.scale / 1.4);
+        // 点舞台空白处（不是图片本身）也收起
+        if (!target.closest('img') && target.closest('[data-lb-stage]')) return close();
+        return;
+      }
+
+      const img = target.closest('.prose-article img');
+      if (img && !img.closest('a')) open(img);
+    });
+
+    document.addEventListener(
+      'wheel',
+      (event) => {
+        const box = overlay();
+        if (!box || !box.classList.contains('is-open')) return;
+        const target = event.target;
+        if (!(target instanceof Element) || !target.closest('.lightbox-stage')) return;
+
+        event.preventDefault();
+        // 触控板捏合会带 ctrlKey，同样走这条路径；步长按 delta 大小自适应
+        const factor = Math.exp(-event.deltaY * 0.0018);
+        zoomTo(state.scale * factor, event.clientX, event.clientY);
+      },
+      { passive: false }
+    );
+
+    // 拖动平移（只在放大后生效）
+    let dragging = false;
+    let dragStart = null;
+
+    document.addEventListener('pointerdown', (event) => {
+      const box = overlay();
+      if (!box || !box.classList.contains('is-open') || state.scale <= 1.01) return;
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('.lightbox-stage')) return;
+
+      dragging = true;
+      dragStart = { x: event.clientX - state.x, y: event.clientY - state.y };
+      box.classList.add('is-dragging');
+      event.preventDefault();
+    });
+
+    document.addEventListener('pointermove', (event) => {
+      if (!dragging || !dragStart) return;
+      state.x = event.clientX - dragStart.x;
+      state.y = event.clientY - dragStart.y;
+      apply();
+    });
+
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      dragStart = null;
+      const box = overlay();
+      if (box) box.classList.remove('is-dragging');
+    };
+
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
+
+    // 双击：1 倍与 2 倍之间来回（触屏上双击同样成立）
+    document.addEventListener('dblclick', (event) => {
+      const box = overlay();
+      if (!box || !box.classList.contains('is-open')) return;
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('img')) return;
+
+      if (state.scale > 1.01) resetView();
+      else zoomTo(2, event.clientX, event.clientY);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      const box = overlay();
+      if (!box || !box.classList.contains('is-open')) return;
+
+      switch (event.key) {
+        case 'Escape':
+          event.preventDefault();
+          close();
+          break;
+        case 'ArrowLeft':
+          event.preventDefault();
+          go(-1);
+          break;
+        case 'ArrowRight':
+          event.preventDefault();
+          go(1);
+          break;
+        case '+':
+        case '=':
+          event.preventDefault();
+          zoomTo(state.scale * 1.25);
+          break;
+        case '-':
+          event.preventDefault();
+          zoomTo(state.scale / 1.25);
+          break;
+        case '0':
+          event.preventDefault();
+          resetView();
+          break;
+        case 'Tab': {
+          // 焦点锁在弹层内，Tab 不会跑到背后的页面上
+          const focusables = Array.from(
+            box.querySelectorAll('button:not([hidden])')
+          ).filter((node) => node.offsetParent !== null);
+          if (focusables.length === 0) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          // 焦点在弹层本身时，Shift+Tab 反向进到最后一个按钮，不跑到背后的页面
+          if (event.shiftKey && (document.activeElement === first || document.activeElement === box)) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+          break;
+        }
+      }
+    });
+  })();
+</script>
+
+<style>
+  /**
+   * 覆盖层与页眉、搜索面板的层级关系：页眉 50、阅读进度 45、搜索面板 80。
+   * 查看器要高过搜索面板——它是一次模态，任何东西都不该浮在它上面。
+   */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: none;
+    flex-direction: column;
+    padding: 0 16px 16px;
+    background-color: rgba(0, 0, 0, 0.96);
+    color: #f5f5f7;
+  }
+
+  .lightbox.is-open {
+    display: flex;
+  }
+
+  .lightbox-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 60px;
+    padding: 8px 0;
+  }
+
+  .lightbox-counter,
+  .lightbox-scale {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.66);
+  }
+
+  .lightbox-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .lb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.86);
+    transition:
+      background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .lb-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (hover: hover) {
+    .lb-btn:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+  }
+
+  .lb-close {
+    margin-left: 4px;
+  }
+
+  .lightbox-stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .lightbox-img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 6px;
+    transform-origin: center center;
+    will-change: transform;
+    animation: lb-fade-in 220ms cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* 放大后可以拖，光标给出提示 */
+  .lightbox.is-zoomed .lightbox-img {
+    cursor: grab;
+  }
+
+  .lightbox.is-dragging .lightbox-img {
+    cursor: grabbing;
+  }
+
+  .lightbox-caption {
+    flex: none;
+    max-width: 860px;
+    margin: 12px auto 0;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .lightbox-caption[hidden] {
+    display: none;
+  }
+
+  @keyframes lb-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 触屏：工具栏按钮再大一点，指头够得着 */
+  @media (max-width: 640px) {
+    .lb-btn {
+      width: 44px;
+      height: 44px;
+    }
+
+    .lightbox-toolbar {
+      min-height: 64px;
+    }
+  }
+</style>
+
+<style is:global>
+  /**
+   * 正文图片的「可点开」提示。只在脚本接管之后才出现（`is-zoom-ready`），
+   * 否则没 JS 时给一个点了没反应的手型光标，反而误导。
+   */
+  .prose-article.is-zoom-ready img {
+    cursor: zoom-in;
+  }
+
+  /* 图片下方的斜体说明本来就是图注，点开查看器时会被一并带过去 */
+  .prose-article.is-zoom-ready p:has(> img) img {
+    transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (hover: hover) {
+    .prose-article.is-zoom-ready p:has(> img) img:hover {
+      opacity: 0.92;
+    }
+  }
+</style>

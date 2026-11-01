@@ -427,3 +427,133 @@ export async function getNowPlaying() {
 export function getListeningStats() {
   return listeningStatsData;
 }
+
+/* ---------------------------------------------------------------------------
+ * 合集 / 学习路线（四期）
+ *
+ * 章节关系写在**文章**上（`collection` + `collectionOrder`），合集页反查 ——
+ * 与「文章 → 专辑」同一套方向：加一章不必回头改合集文件。
+ * ------------------------------------------------------------------------- */
+
+export type Collection = CollectionEntry<'collections'>;
+
+export type CollectionGroup = {
+  collection: Collection;
+  /** 已发布章节，已按阅读顺序排好 */
+  chapters: Post[];
+};
+
+/**
+ * 章节排序：`collectionOrder` 小的在前，没填的按发布时间升序排在其后。
+ *
+ * 为什么不让发布时间单独决定顺序：同一批导入的笔记常常同一天发布
+ * （Python 基础三篇都是 2026-10-13），时间戳一模一样，顺序就成了随机的。
+ * 章节次序是内容属性，不该由发布时机的巧合决定。
+ */
+function sortChapters(posts: Post[]): Post[] {
+  const rank = (post: Post) => post.data.collectionOrder ?? Number.POSITIVE_INFINITY;
+  return [...posts].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      a.data.publishedAt.valueOf() - b.data.publishedAt.valueOf() ||
+      a.data.title.localeCompare(b.data.title, 'zh')
+  );
+}
+
+/**
+ * 全部合集 + 各自的章节。`/collections`、`/collections/[id]` 与文章页的合集条都从这里取。
+ *
+ * 三条校验，只 warn 不中断构建：
+ *   - 文章写了 `collection` 却找不到对应合集文件
+ *   - 合集一章都没有（不会出现在列表里）
+ *   - 同一合集内 `collectionOrder` 重复（顺序会退化为按时间）
+ */
+export async function collectCollections(): Promise<CollectionGroup[]> {
+  const [all, posts] = await Promise.all([
+    getCollection('collections', ({ data }) => !data.draft),
+    getPublishedPosts(),
+  ]);
+
+  const byId = new Map(all.map((item) => [item.id, item]));
+  const grouped = new Map<string, Post[]>();
+
+  for (const post of posts) {
+    const id = post.data.collection?.trim();
+    if (!id) continue;
+
+    if (!byId.has(id)) {
+      warnOnce(
+        `[collections] 文章「${post.id}」的 collection 指向「${id}」，但没有这条合集 —— ` +
+          `检查 src/content/collections/${id}.md 是否存在。`
+      );
+      continue;
+    }
+
+    const list = grouped.get(id);
+    if (list) list.push(post);
+    else grouped.set(id, [post]);
+  }
+
+  const entries: CollectionGroup[] = [];
+
+  for (const item of all) {
+    const chapters = sortChapters(grouped.get(item.id) ?? []);
+
+    if (chapters.length === 0) {
+      warnOnce(
+        `[collections] 合集「${item.data.title}」（${item.id}）还没有章节，` +
+          `不会出现在 /collections 列表里 —— 在文章 frontmatter 写 collection: "${item.id}" 即可认领。`
+      );
+      continue;
+    }
+
+    // 章节序号重复时排序会退化成按时间，值得喊一声
+    const seen = new Map<number, string>();
+    for (const chapter of chapters) {
+      const order = chapter.data.collectionOrder;
+      if (order === undefined) continue;
+      const prev = seen.get(order);
+      if (prev) {
+        warnOnce(
+          `[collections] 合集「${item.data.title}」的第 ${order} 章重复：` +
+            `「${prev}」与「${chapter.id}」，顺序将退化为按发布时间。`
+        );
+      } else {
+        seen.set(order, chapter.id);
+      }
+    }
+
+    entries.push({ collection: item, chapters });
+  }
+
+  return entries.sort(
+    (a, b) =>
+      a.collection.data.order - b.collection.data.order ||
+      a.collection.data.title.localeCompare(b.collection.data.title, 'zh')
+  );
+}
+
+/**
+ * 某篇文章在它所属合集里的位置。文章页的合集条与章节导航都用它。
+ * 不属于任何合集（或合集已失效）时返回 undefined，页面照常渲染。
+ */
+export function collectionPosition(
+  post: Post,
+  entries: CollectionGroup[]
+): { entry: CollectionGroup; index: number; prev?: Post; next?: Post } | undefined {
+  const id = post.data.collection?.trim();
+  if (!id) return undefined;
+
+  const entry = entries.find((item) => item.collection.id === id);
+  if (!entry) return undefined;
+
+  const index = entry.chapters.findIndex((chapter) => chapter.id === post.id);
+  if (index === -1) return undefined;
+
+  return {
+    entry,
+    index,
+    prev: entry.chapters[index - 1],
+    next: entry.chapters[index + 1],
+  };
+}

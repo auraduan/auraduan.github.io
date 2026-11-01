@@ -4,6 +4,8 @@ description: "类与对象、属性与方法、封装继承多态，再到 __str
 publishedAt: 2026-10-13
 category: "Python"
 tags: ["Python", "Python基础", "面向对象", "OOP", "笔记"]
+collection: "python-basics"
+collectionOrder: 2
 draft: false
 toc: true
 math: false

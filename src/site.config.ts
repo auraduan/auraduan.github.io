@@ -31,15 +31,15 @@ export type LinkGroup = {
 export const SITE = {
   // TODO(令宸)：填博客名称与副标题 —— 首页 Hero 会用到
   title: 'Linson\'s Blog',
-  subtitle: '音乐、日常、代码与机器人',
+  subtitle: '音乐、日常与代码',
 
   /** 站点描述：用于 SEO meta description 与 RSS */
-  description: '段令宸的个人博客 —— 机器人工程、代码与音乐。',
+  description: '段令宸的个人博客 —— 机器人、代码与音乐。',
 
   author: 'Lingchen Duan',
 
   // TODO(令宸)：关于页照片旁的身份说明
-  role: '机器人工程在读 · 烟台大学',
+  role: '机器人工程在读',
 
   /**
    * 站点 URL（末尾不带斜杠）。
@@ -58,14 +58,20 @@ export const SITE = {
  */
 export const NAV: NavItem[] = [
   { label: '文章', href: '/posts' },
+  { label: '合集', href: '/collections' },
   { label: '音乐', href: '/music' },
   { label: '归档', href: '/archive' },
   {
     label: '工具',
     href: '/links',
     children: [
-      // TODO(令宸)：把你要放在导航栏的常用网站填在这里，也可以只保留「全部工具」进 /links 页
       { label: '全部工具', href: '/links', desc: '按分类浏览全部链接' },
+      { label: 'ArduPilot 文档', href: 'https://ardupilot.org/', desc: '开源飞控固件与开发文档' },
+      { label: 'Python 文档', href: 'https://docs.python.org/zh-cn/3/', desc: '官方文档 · 中文版' },
+      { label: 'ChatGPT', href: 'https://chatgpt.com/', desc: 'OpenAI 的对话助手' },
+      { label: 'Gemini', href: 'https://gemini.google.com/', desc: 'Google 的对话助手' },
+      { label: 'DeepSeek', href: 'https://www.deepseek.com/', desc: '深度求索的对话助手' },
+      { label: 'Kimi', href: 'https://www.kimi.com/', desc: '月之暗面的对话助手' },
       { label: 'GitHub', href: 'https://github.com', desc: '代码托管' },
     ],
   },
@@ -74,7 +80,7 @@ export const NAV: NavItem[] = [
 
 /**
  * 工具导航页（/links）的分组内容。
- * TODO(令宸)：替换成你自己的常用站点清单，增删分组直接改数组即可。
+ * 导航栏「工具」下拉里的常用项与这里保持一致（下拉是精简版，这里才是全量）。
  */
 export const LINK_GROUPS: LinkGroup[] = [
   {
@@ -83,6 +89,7 @@ export const LINK_GROUPS: LinkGroup[] = [
       { label: 'GitHub', href: 'https://github.com', desc: '代码托管与协作' },
       { label: 'MDN Web Docs', href: 'https://developer.mozilla.org', desc: 'Web 技术文档' },
       { label: 'Astro 文档', href: 'https://docs.astro.build', desc: '本站所用框架' },
+      { label: 'Python 文档', href: 'https://docs.python.org/zh-cn/3/', desc: '官方文档 · 中文版' },
     ],
   },
   {
@@ -90,6 +97,16 @@ export const LINK_GROUPS: LinkGroup[] = [
     items: [
       { label: 'ROS 2 文档', href: 'https://docs.ros.org', desc: '机器人操作系统' },
       { label: 'PX4 开发者指南', href: 'https://docs.px4.io', desc: '无人机飞控' },
+      { label: 'ArduPilot 文档', href: 'https://ardupilot.org/', desc: '开源飞控固件与开发文档' },
+    ],
+  },
+  {
+    title: 'AI 助手',
+    items: [
+      { label: 'ChatGPT', href: 'https://chatgpt.com/', desc: 'OpenAI 的对话助手' },
+      { label: 'Gemini', href: 'https://gemini.google.com/', desc: 'Google 的对话助手' },
+      { label: 'DeepSeek', href: 'https://www.deepseek.com/', desc: '深度求索的对话助手' },
+      { label: 'Kimi', href: 'https://www.kimi.com/', desc: '月之暗面的对话助手' },
     ],
   },
   {

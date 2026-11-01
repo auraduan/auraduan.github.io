@@ -1,0 +1,60 @@
+---
+import { formatDate, readingTime, type Post } from '../lib/content';
+
+/**
+ * 合集章节表 —— `/collections`、`/collections/[id]` 与文章页底部共用。
+ *
+ * 为什么抽组件：三处的差异只有「要不要标当前章」，行结构、序号格式、
+ * 日期口径必须**完全一致**——否则同一个合集在列表页与文章页会排出两种样子。
+ */
+interface Props {
+  chapters: Post[];
+  /** 当前正在读的章节 id。传了就把那一行标出来 */
+  currentId?: string;
+}
+
+const { chapters, currentId } = Astro.props;
+
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<ol class="mt-1">
+  {
+    chapters.map((chapter, index) => {
+      const isCurrent = chapter.id === currentId;
+      return (
+        <li class="border-t border-line first:border-t-0">
+          <a
+            href={`/posts/${chapter.id}`}
+            aria-current={isCurrent ? 'page' : undefined}
+            class="group flex items-baseline gap-3 py-3"
+          >
+            <span
+              class:list={[
+                'w-6 shrink-0 text-caption tabular-nums transition-colors',
+                isCurrent ? 'text-accent' : 'text-ink-muted',
+              ]}
+            >
+              {pad(index + 1)}
+            </span>
+
+            <span class="min-w-0 flex-1">
+              <span class="block text-body text-ink transition-colors group-hover:text-accent">
+                {chapter.data.title}
+              </span>
+              <span class="mt-1 block text-caption text-ink-muted">
+                {formatDate(chapter.data.publishedAt)} · 约 {readingTime(chapter.body)} 分钟
+              </span>
+            </span>
+
+            {isCurrent && (
+              <span class="shrink-0 text-caption text-accent" aria-hidden="true">
+                当前
+              </span>
+            )}
+          </a>
+        </li>
+      );
+    })
+  }
+</ol>

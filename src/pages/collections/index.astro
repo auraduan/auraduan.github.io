@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import CollectionChapters from '../../components/CollectionChapters.astro';
+import { collectCollections } from '../../lib/content';
+
+/**
+ * 合集总览。
+ *
+ * 这一页回答的是「从哪儿开始读」：每条线一段导语 + 一张按顺序排的章节表。
+ * 章节关系来自文章自己（frontmatter 的 `collection` / `collectionOrder`），
+ * 这里只负责按合集聚合 —— 加一章不用动这个文件。
+ */
+const entries = await collectCollections();
+const totalChapters = entries.reduce((sum, entry) => sum + entry.chapters.length, 0);
+---
+
+<BaseLayout
+  title="合集"
+  description="按主题成章的阅读线：一条线从第 1 章读到最后一章。"
+>
+  <PageHeader
+    title="合集"
+    description={`${entries.length} 个合集、${totalChapters} 章。每条线都按顺序排好，从第 1 章读起即可。`}
+  />
+
+  <div class="mx-auto max-w-[980px] px-6 pb-24">
+    {
+      entries.length === 0 ? (
+        <p class="text-small text-ink-muted">还没有合集。</p>
+      ) : (
+        <div class="flex flex-col gap-16">
+          {entries.map((entry) => (
+            <section data-reveal>
+              <a href={`/collections/${entry.collection.id}`} class="group block max-w-[680px]">
+                <p class="text-caption tabular-nums text-ink-muted">
+                  共 {entry.chapters.length} 章
+                </p>
+                <h2 class="mt-2 text-h2 text-ink transition-colors group-hover:text-accent">
+                  {entry.collection.data.title}
+                </h2>
+                <p class="mt-3 text-body text-ink-muted">{entry.collection.data.description}</p>
+              </a>
+
+              <div class="mt-6 max-w-[680px]">
+                <CollectionChapters chapters={entry.chapters} />
+              </div>
+            </section>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</BaseLayout>

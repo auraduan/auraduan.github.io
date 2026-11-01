@@ -43,31 +43,41 @@ const categories = collectCategories(posts);
         )
       }
 
-      <!-- 随机文章。accent 蓝 = 可点（全站状态语义），与筛选按钮（墨色 = 正在筛选）区分 -->
-      <button
-        type="button"
-        data-random-post
-        data-random-urls={JSON.stringify(posts.map((p) => `/posts/${p.id}`))}
-        class="group inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-1.5 text-caption text-accent transition-colors hover:border-accent"
-      >
-        <svg
-          class="h-3.5 w-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- 合集入口：文章按主题成线的另一条浏览路径 -->
+        <a
+          href="/collections"
+          class="inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-1.5 text-caption text-ink-muted transition-colors hover:border-ink hover:text-ink"
         >
-          <path d="M16 3h5v5"></path>
-          <path d="M4 20 21 3"></path>
-          <path d="M21 16v5h-5"></path>
-          <path d="m15 15 6 6"></path>
-          <path d="m4 4 5 5"></path>
-        </svg>
-        随便逛逛
-      </button>
+          全部合集 →
+        </a>
+
+        <!-- 随机文章。accent 蓝 = 可点（全站状态语义），与筛选按钮（墨色 = 正在筛选）区分 -->
+        <button
+          type="button"
+          data-random-post
+          data-random-urls={JSON.stringify(posts.map((p) => `/posts/${p.id}`))}
+          class="group inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-1.5 text-caption text-accent transition-colors hover:border-accent"
+        >
+          <svg
+            class="h-3.5 w-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M16 3h5v5"></path>
+            <path d="M4 20 21 3"></path>
+            <path d="M21 16v5h-5"></path>
+            <path d="m15 15 6 6"></path>
+            <path d="m4 4 5 5"></path>
+          </svg>
+          随便逛逛
+        </button>
+      </div>
     </div>
 
     {

@@ -66,6 +66,20 @@ const posts = defineCollection({
        * ⚠ 标题对不上会**静默失配**（同歌手档案那个坑）→ 构建时有告警兜底。
        */
       track: z.string().optional(),
+      /**
+       * 所属**合集**（一条有顺序的阅读线）的 id，对应 `src/content/collections/<id>.md`。
+       *
+       * 关联**写在文章上**，合集页反查 —— 与「文章 → 专辑」同一套，
+       * 于是加一章只需在新文章里写一行，不必回头改合集文件。
+       *
+       * 排序：`collectionOrder` 由小到大在前，没填的按发布时间排在其后。
+       * 为什么不用发布时间排序：同一批导入的笔记经常同一天发布（Python 基础三篇全是
+       * 2026-10-13），时间戳完全一样，顺序就变成了随机的。章节顺序是**内容属性**，
+       * 不该由发布时间的巧合决定。
+       */
+      collection: z.string().optional(),
+      /** 在合集里的序号（1 起）。同一合集内唯一，重复会告警 */
+      collectionOrder: z.number().int().positive().optional(),
       toc: z.boolean().default(true),
       /** 置 true 才在该页加载 KaTeX 样式，避免全站为偶尔的公式付性能代价 */
       math: z.boolean().default(false),
@@ -200,4 +214,38 @@ const artists = defineCollection({
     }),
 });
 
-export const collections = { posts, albums, artists };
+/**
+ * 合集（一条有顺序的阅读线，例如「Python 基础」）。每个合集一个文件：
+ *   src/content/collections/python-basics.md
+ * 文件名即 id，也就是 /collections/python-basics 的 URL。
+ *
+ * 章节不写在这里 —— 文章用 `collection: "python-basics"` 认领，合集页反查。
+ * 这样加一章不用动合集文件，与「文章 → 专辑」是同一套关联方向。
+ *
+ * 正文（frontmatter 之下）是**合集导语**：写给第一次来的人——这条线讲什么、
+ * 按什么顺序读、要什么基础。可以为空（那就只有标题与章节表）。
+ */
+const collectionsIndex = defineCollection({
+  loader: glob({
+    pattern: '**/[^_]*.{md,mdx}',
+    base: './src/content/collections',
+    generateId: ({ entry }) => {
+      const segments = entry.replace(/\.mdx?$/, '').split('/');
+      const last = segments[segments.length - 1];
+      return last === 'index' ? (segments[segments.length - 2] ?? 'index') : last;
+    },
+  }),
+  schema: z.object({
+    title: z.string(),
+    /** 一句话说明这条线讲什么。合集页与文章页的合集条都会用到 */
+    description: z.string(),
+    /**
+     * 合集在 `/collections` 列表里的位置（小的在前）。不填排最后。
+     * 与文章里的 `collectionOrder` 是两件事：那个是**章内的序号**。
+     */
+    order: z.number().default(100),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { posts, albums, artists, collections: collectionsIndex };

@@ -11,8 +11,15 @@ interface Props {
   /** 页面标题（不含站点名，会自动拼接） */
   title?: string;
   description?: string;
-  /** 社交分享图，绝对路径或完整 URL */
+  /** 社交分享图，绝对路径或完整 URL。不传则用站点的通用卡片 */
   image?: string;
+  /** 分享图的替代文本（无障碍 + 部分平台会显示） */
+  imageAlt?: string;
+  /** 分享图尺寸：给了就输出 og:image:width/height，部分平台据此提前预留版面 */
+  imageWidth?: number;
+  imageHeight?: number;
+  /** og:type。文章页传 'article'，其余保持 website */
+  type?: 'website' | 'article';
   /** 宽版布局：不加顶部导航留白，供首页全屏首屏使用 */
   wide?: boolean;
   /** 首屏是整屏壁纸：页眉初始透明，滚动后恢复常规样式 */
@@ -23,13 +30,32 @@ const {
   title,
   description = SITE.description,
   image,
+  imageAlt,
+  imageWidth,
+  imageHeight,
+  type = 'website',
   wide = false,
   overHero = false,
 } = Astro.props;
 
+/**
+ * 分享图兜底：没有封面的页面用一张通用的站点卡片，而不是干脆不输出 og:image。
+ *
+ * 为什么值得兜底：没有 og:image 时，微信 / Telegram 等会退化成一行动态文字链，
+ * 版面比「有一张通用卡片」差得多。这张卡是**静态资产**（public/og-default.png，
+ * 1200×630），不参与构建——自动按标题生成每篇文章的卡片是另一件事，
+ * 结论是**暂缓**，理由见 docs/需求方案.md「附：OG 分享图」。
+ */
+const DEFAULT_OG = { path: '/og-default.png', width: 1200, height: 630 };
+
 const pageTitle = title ? `${title} · ${SITE.title}` : `${SITE.title} · ${SITE.subtitle}`;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
-const ogImage = image ? new URL(image, Astro.site).href : undefined;
+
+const ogPath = image ?? DEFAULT_OG.path;
+const ogImage = new URL(ogPath, Astro.site).href;
+const ogWidth = image ? imageWidth : DEFAULT_OG.width;
+const ogHeight = image ? imageHeight : DEFAULT_OG.height;
+const ogAlt = imageAlt ?? pageTitle;
 ---
 
 <!doctype html>
@@ -51,14 +77,19 @@ const ogImage = image ? new URL(image, Astro.site).href : undefined;
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
 
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={type} />
     <meta property="og:site_name" content={SITE.title} />
     <meta property="og:locale" content={SITE.locale} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={ogAlt} />
+    {ogWidth && <meta property="og:image:width" content={String(ogWidth)} />}
+    {ogHeight && <meta property="og:image:height" content={String(ogHeight)} />}
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={ogAlt} />
 
     <meta name="generator" content={Astro.generator} />
 
